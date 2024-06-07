@@ -15,7 +15,6 @@ from libiclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
 from typing import Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
-from PIL import Image
 import gradio as gr
 import numpy as np
 
@@ -104,7 +103,7 @@ class ICLightScript(scripts.Script):
                 input_fg = gr.Image(
                     source="upload",
                     type="numpy",
-                    label="Foreground",
+                    label=("Lighting Conditioning" if is_img2img else "Foreground"),
                     height=480,
                     interactive=True,
                     visible=True,
@@ -155,7 +154,9 @@ class ICLightScript(scripts.Script):
                 interactive=True,
             )
 
-            with InputAccordion(value=False, label="Restore Details") as detail_transfer:
+            with InputAccordion(
+                value=False, label="Restore Details"
+            ) as detail_transfer:
 
                 detail_transfer_use_raw_input = gr.Checkbox(
                     label="Use the [Original Input] instead of the [Image with Background Removed]"
@@ -211,13 +212,13 @@ class ICLightScript(scripts.Script):
             bg_source_fc.input(
                 fn=update_img2img_input,
                 inputs=[bg_source_fc],
-                outputs=[ICLightScript.a1111_context.img2img_image],
+                outputs=[input_fg],
             )
 
             def set_img2img_mode():
                 return gr.update(value=BGSourceFC.CUSTOM)
 
-            ICLightScript.a1111_context.img2img_image.upload(
+            input_fg.upload(
                 fn=set_img2img_mode,
                 inputs=None,
                 outputs=[bg_source_fc],
@@ -254,15 +255,16 @@ class ICLightScript(scripts.Script):
 
     def before_process(self, p, *args, **kwargs):
         self.detailed_images: list = []
-        args = ICLightArgs.fetch_from(p)
-        if not args.enabled:
+
+        _args = ICLightArgs.fetch_from(p)
+        if not _args.enabled:
             self.args = None
             return
 
         if isinstance(p, StableDiffusionProcessingImg2Img):
-            p.init_images[0] = Image.fromarray(args.get_lightmap(p))
+            p.init_images[0] = _args.get_lightmap(p)
 
-        self.args = args
+        self.args = _args
 
     def process(self, p: StableDiffusionProcessing, *args, **kwargs):
         """A1111 impl."""

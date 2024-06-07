@@ -2,8 +2,8 @@ from modules import scripts
 from modules.api import api
 from modules.processing import (
     StableDiffusionProcessing,
-    StableDiffusionProcessingImg2Img,
     StableDiffusionProcessingTxt2Img,
+    StableDiffusionProcessingImg2Img,
 )
 
 from libiclight.model_loader import ModelType
@@ -17,6 +17,7 @@ from libiclight.utils import (
 from pydantic import BaseModel, root_validator, validator
 from typing import Optional
 from enum import Enum
+from PIL import Image
 import numpy as np
 
 
@@ -205,8 +206,14 @@ class ICLightArgs(BaseModel):
         ][0]
 
         args = p.script_args[ic_light_script.args_from : ic_light_script.args_to]
-
         assert len(args) == 1
+
+        if args[0]["enabled"]:
+            if isinstance(p, StableDiffusionProcessingImg2Img):
+                input_image = np.asarray(p.init_images[0]).astype(np.uint8)
+                p.init_images[0] = Image.fromarray(args[0]["input_fg"])
+                args[0]["input_fg"] = input_image
+
         return ICLightArgs(**args[0])
 
     class Config:
@@ -256,6 +263,7 @@ class ICLightArgs(BaseModel):
         assert self.model_type == ModelType.FC
         assert isinstance(p, StableDiffusionProcessingImg2Img)
         lightmap = np.asarray(p.init_images[0]).astype(np.uint8)
+
         if self.reinforce_fg:
             rgb_fg = self.input_fg_rgb
             mask = np.all(rgb_fg == np.array([127, 127, 127]), axis=-1)
@@ -270,4 +278,4 @@ class ICLightArgs(BaseModel):
                 np.uint8
             )
 
-        return lightmap
+        return Image.fromarray(lightmap)
