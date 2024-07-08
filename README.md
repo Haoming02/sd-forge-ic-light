@@ -19,5 +19,4 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 ## Known Issue
 
-- For **Automatic1111** implementation, **Hires. Fix** is not supported yet due to internal code structure
-- `Restore Details` does not work properly yet, if the input and output aspect ratios are different
+- `Restore Details` currently does not work properly when the input and output aspect ratios are different
