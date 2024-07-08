@@ -3,7 +3,7 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 > This only works with SD 1.5 checkpoints
 
-> Now supports [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)[*](#getting-started)
+> Now supports [Automatic1111 Webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui)[*](#getting-started) **v1.10** or later
 
 ## Getting Started
 0. For **Automatic1111**, install [sd-webui-model-patcher](https://github.com/huchenlei/sd-webui-model-patcher) first
