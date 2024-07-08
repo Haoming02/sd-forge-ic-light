@@ -38,7 +38,10 @@ def run_rmbg(
 
     processed_image = rembg.remove(
         image,
-        session=rembg.new_session(model),
+        session=rembg.new_session(
+            model_name=model,
+            providers=["CPUExecutionProvider"],
+        ),
         alpha_matting=True,
         alpha_matting_foreground_threshold=foreground_threshold,
         alpha_matting_background_threshold=background_threshold,
