@@ -7,10 +7,10 @@ from modules.processing import (
     StableDiffusionProcessingImg2Img,
 )
 
+from libiclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
 from libiclight.model_loader import ModelType, detect_models
 from libiclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
 from libiclight.detail_utils import restore_detail
-from libiclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
 
 from typing import Optional, Tuple
 from dataclasses import dataclass
@@ -257,7 +257,7 @@ class ICLightScript(scripts.Script):
         self.detailed_images: list = []
 
         _args = ICLightArgs.fetch_from(p)
-        if not _args.enabled:
+        if not _args:
             self.args = None
             return
 

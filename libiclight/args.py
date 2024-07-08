@@ -138,18 +138,11 @@ class ICLightArgs(BaseModel):
     bg_source_fc: BGSourceFC = BGSourceFC.NONE
     bg_source_fbc: BGSourceFBC = BGSourceFBC.UPLOAD
     remove_bg: bool = True
-    # FC model only option. Overlay the FG image on top of the light map
-    # in order to better preserve FG's base color.
     reinforce_fg: bool = True
-    # Transfer high frequency detail from input image to the output.
-    # This can better preserve the details such as text.
     detail_transfer: bool = False
-    # Whether to use raw input for detail transfer.
     detail_transfer_use_raw_input: bool = False
-    # Blur radius for detail transfer.
     detail_transfer_blur_radius: int = 5
 
-    # Calculated value of the input fg with alpha channel filled with grey.
     input_fg_rgb: Optional[np.ndarray] = None
 
     @classmethod
@@ -213,8 +206,9 @@ class ICLightArgs(BaseModel):
                 input_image = np.asarray(p.init_images[0]).astype(np.uint8)
                 p.init_images[0] = Image.fromarray(args[0]["input_fg"])
                 args[0]["input_fg"] = input_image
+            return ICLightArgs(**args[0])
 
-        return ICLightArgs(**args[0])
+        return None
 
     class Config:
         arbitrary_types_allowed = True
