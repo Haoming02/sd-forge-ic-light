@@ -18,5 +18,5 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 **W.I.P**
 
 ## Roadmap
-- [ ] Support different `rembg` models
+- [X] Support different `rembg` models
 - [ ] Improve DoG

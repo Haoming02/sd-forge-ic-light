@@ -10,6 +10,7 @@ from modules.processing import (
 from libiclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
 from libiclight.model_loader import ModelType, detect_models
 from libiclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
+from libiclight.rembg_utils import AVAILABLE_MODELS
 from libiclight.detail_utils import restore_detail
 
 from typing import Optional, Tuple
@@ -118,20 +119,47 @@ class ICLightScript(scripts.Script):
                     visible=False,
                 )
 
-            with gr.Row():
-                remove_bg = gr.Checkbox(
-                    label="Background Removal",
-                    info="Disable if you already have a subject with the background removed",
-                    value=True,
-                    interactive=True,
+            reinforce_fg = gr.Checkbox(
+                label="Reinforce Foreground",
+                info="Preserve the foreground base color",
+                value=False,
+                interactive=True,
+                visible=is_img2img,
+            )
+
+            with InputAccordion(value=False, label="Background Removal") as remove_bg:
+                gr.Markdown(
+                    "<i>Disable if you already have a subject with the background removed</i>"
                 )
 
-                reinforce_fg = gr.Checkbox(
-                    label="Reinforce Foreground",
-                    info="Preserve the foreground base color",
-                    value=False,
-                    interactive=True,
-                    visible=is_img2img,
+                rembg_model = gr.Dropdown(
+                    label="Background Removal Model",
+                    choices=AVAILABLE_MODELS,
+                    value=AVAILABLE_MODELS[0],
+                )
+
+                foreground_threshold = gr.Slider(
+                    label="Foreground Threshold",
+                    minimum=0,
+                    maximum=255,
+                    step=1,
+                    value=225,
+                )
+
+                background_threshold = gr.Slider(
+                    label="Background Threshold",
+                    minimum=0,
+                    maximum=255,
+                    step=1,
+                    value=16,
+                )
+
+                erode_size = gr.Slider(
+                    label="Erode Size",
+                    minimum=0,
+                    maximum=128,
+                    step=1,
+                    value=16,
                 )
 
             bg_source_fc = gr.Radio(
@@ -191,6 +219,10 @@ class ICLightScript(scripts.Script):
                 bg_source_fc,
                 bg_source_fbc,
                 remove_bg,
+                rembg_model,
+                foreground_threshold,
+                background_threshold,
+                erode_size,
                 reinforce_fg,
                 detail_transfer,
                 detail_transfer_use_raw_input,

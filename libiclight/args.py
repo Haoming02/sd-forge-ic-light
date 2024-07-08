@@ -138,6 +138,10 @@ class ICLightArgs(BaseModel):
     bg_source_fc: BGSourceFC = BGSourceFC.NONE
     bg_source_fbc: BGSourceFBC = BGSourceFBC.UPLOAD
     remove_bg: bool = True
+    rembg_model: str = None
+    foreground_threshold: int = 255
+    background_threshold: int = 0
+    erode_size: int = 0
     reinforce_fg: bool = True
     detail_transfer: bool = False
     detail_transfer_use_raw_input: bool = False
@@ -173,7 +177,13 @@ class ICLightArgs(BaseModel):
             return values
 
         if remove_bg:
-            input_fg_rgb: np.ndarray = run_rmbg(input_fg)
+            input_fg_rgb: np.ndarray = run_rmbg(
+                input_fg,
+                values.get("rembg_model"),
+                values.get("foreground_threshold"),
+                values.get("background_threshold"),
+                values.get("erode_size"),
+            )
         else:
             if len(input_fg.shape) < 3:
                 raise NotImplementedError("Does not support L Images...")

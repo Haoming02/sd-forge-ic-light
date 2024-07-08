@@ -11,12 +11,12 @@ import os
 
 AVAILABLE_MODELS = (
     "u2net_human_seg",
-    "isnet-anime",
     # "u2net",
     # "u2netp",
     # "u2net_cloth_seg",
-    # "silueta",
+    "isnet-anime",
     # "isnet-general-use",
+    # "silueta",
 )
 
 GREY = (127, 127, 127, 255)
