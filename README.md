@@ -17,6 +17,6 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 **W.I.P**
 
-## Known Issue
-
-- `Restore Details` currently does not work properly when the input and output aspect ratios are different
+## Roadmap
+- [ ] Support different `rembg` models
+- [ ] Improve DoG

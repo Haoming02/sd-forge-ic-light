@@ -3,29 +3,34 @@
 # https://youtu.be/5EuYKEvugLU?feature=shared #
 # =========================================== #
 
+from modules.images import resize_image
+
 from PIL import Image
 import numpy as np
 import cv2
+
+
+def resize_input(img: np.array, h: int, w: int, mode: int) -> np.array:
+    img = Image.fromarray(img).convert("RGB")
+    resized_img: Image = resize_image(mode, img, w, h)
+
+    return np.asarray(resized_img).astype(np.uint8)
 
 
 def restore_detail(
     ic_light_image: np.array,
     original_image: np.array,
     blur_radius: int = 5,
+    resize_mode: int = 1,  # Crop & Resize
 ) -> Image:
 
     h, w, c = ic_light_image.shape
-    original_image = cv2.resize(original_image, (w, h))
+    original_image = resize_input(original_image, h, w, resize_mode)
 
     if len(ic_light_image.shape) == 2:
         ic_light_image = cv2.cvtColor(ic_light_image, cv2.COLOR_GRAY2RGB)
     elif ic_light_image.shape[2] == 4:
         ic_light_image = cv2.cvtColor(ic_light_image, cv2.COLOR_RGBA2RGB)
-
-    if len(original_image.shape) == 2:
-        original_image = cv2.cvtColor(original_image, cv2.COLOR_GRAY2RGB)
-    elif original_image.shape[2] == 4:
-        original_image = cv2.cvtColor(original_image, cv2.COLOR_RGBA2RGB)
 
     assert ic_light_image.shape[2] == 3
     assert original_image.shape[2] == 3
