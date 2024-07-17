@@ -211,7 +211,7 @@ class ICLightArgs(BaseModel):
         args = p.script_args[ic_light_script.args_from : ic_light_script.args_to]
         assert len(args) == 1
 
-        if args[0]["enabled"]:
+        if args[0].get("enabled", False):
             if isinstance(p, StableDiffusionProcessingImg2Img):
                 input_image = np.asarray(p.init_images[0]).astype(np.uint8)
                 p.init_images[0] = Image.fromarray(args[0]["input_fg"])
