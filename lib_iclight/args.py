@@ -6,9 +6,9 @@ from modules.processing import (
     StableDiffusionProcessingImg2Img,
 )
 
-from libiclight.model_loader import ModelType
-from libiclight.rembg_utils import run_rmbg
-from libiclight.utils import (
+from .model_loader import ModelType
+from .rembg_utils import run_rmbg
+from .utils import (
     align_dim_latent,
     make_masked_area_grey,
     resize_and_center_crop,

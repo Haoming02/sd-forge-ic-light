@@ -7,11 +7,11 @@ from modules.processing import (
     StableDiffusionProcessingImg2Img,
 )
 
-from libiclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
-from libiclight.model_loader import ModelType, detect_models
-from libiclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
-from libiclight.rembg_utils import AVAILABLE_MODELS
-from libiclight.detail_utils import restore_detail
+from lib_iclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
+from lib_iclight.model_loader import ModelType, detect_models
+from lib_iclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
+from lib_iclight.rembg_utils import AVAILABLE_MODELS
+from lib_iclight.detail_utils import restore_detail
 
 from typing import Optional, Tuple
 from dataclasses import dataclass
@@ -60,13 +60,13 @@ class ICLightScript(scripts.Script):
         self.args: ICLightArgs = None
 
         try:
-            from libiclight.forge_backend import apply_ic_light
+            from lib_iclight.forge_backend import apply_ic_light
 
             self.apply_ic_light = apply_ic_light
             self.backend_type = BackendType.Forge
 
         except ImportError:
-            from libiclight.a1111_backend import apply_ic_light
+            from lib_iclight.a1111_backend import apply_ic_light
 
             self.apply_ic_light = apply_ic_light
             self.backend_type = BackendType.A1111
