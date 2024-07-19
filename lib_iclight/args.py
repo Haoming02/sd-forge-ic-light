@@ -1,231 +1,132 @@
-from modules import scripts
-from modules.api import api
 from modules.processing import (
-    StableDiffusionProcessing,
     StableDiffusionProcessingTxt2Img,
     StableDiffusionProcessingImg2Img,
+    StableDiffusionProcessing,
 )
 
+from modules.api.api import decode_base64_to_image
+
+from .bg_source import BGSourceFC, BGSourceFBC
 from .model_loader import ModelType
 from .rembg_utils import run_rmbg
 from .utils import (
-    align_dim_latent,
-    make_masked_area_grey,
     resize_and_center_crop,
+    make_masked_area_grey,
+    align_dim_latent,
 )
 
-from pydantic import BaseModel, root_validator, validator
-from typing import Optional
-from enum import Enum
 from PIL import Image
 import numpy as np
 
 
-class BGSourceFC(Enum):
-    """BGSource for FC model."""
+class ICLightArgs:
 
-    NONE = "None"
-    LEFT = "Left Light"
-    RIGHT = "Right Light"
-    TOP = "Top Light"
-    BOTTOM = "Bottom Light"
-    GREY = "Ambient"
-    CUSTOM = "Custom LightMap"
-
-    def get_bg(
-        self,
-        image_width: int,
-        image_height: int,
-    ) -> np.ndarray:
-
-        match self:
-
-            case BGSourceFC.LEFT:
-                gradient = np.linspace(255, 0, image_width)
-                image = np.tile(gradient, (image_height, 1))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFC.RIGHT:
-                gradient = np.linspace(0, 255, image_width)
-                image = np.tile(gradient, (image_height, 1))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFC.TOP:
-                gradient = np.linspace(255, 0, image_height)[:, None]
-                image = np.tile(gradient, (1, image_width))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFC.BOTTOM:
-                gradient = np.linspace(0, 255, image_height)[:, None]
-                image = np.tile(gradient, (1, image_width))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFC.GREY:
-                input_bg = (
-                    np.zeros(shape=(image_height, image_width, 3), dtype=np.uint8) + 127
-                )
-
-            case _:
-                raise NotImplementedError("Wrong initial latent!")
-
-        return input_bg
-
-
-class BGSourceFBC(Enum):
-    """BGSource for FBC model."""
-
-    UPLOAD = "Use Background Image"
-    UPLOAD_FLIP = "Use Flipped Background Image"
-    LEFT = "Left Light"
-    RIGHT = "Right Light"
-    TOP = "Top Light"
-    BOTTOM = "Bottom Light"
-    GREY = "Ambient"
-
-    def get_bg(
-        self,
-        image_width: int,
-        image_height: int,
-        uploaded_bg: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
-
-        match self:
-
-            case BGSourceFBC.UPLOAD:
-                assert uploaded_bg is not None
-                input_bg = uploaded_bg
-
-            case BGSourceFBC.UPLOAD_FLIP:
-                assert uploaded_bg is not None
-                input_bg = np.fliplr(uploaded_bg)
-
-            case BGSourceFBC.GREY:
-                input_bg = (
-                    np.zeros(shape=(image_height, image_width, 3), dtype=np.uint8) + 64
-                )
-
-            case BGSourceFBC.LEFT:
-                gradient = np.linspace(224, 32, image_width)
-                image = np.tile(gradient, (image_height, 1))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFBC.RIGHT:
-                gradient = np.linspace(32, 224, image_width)
-                image = np.tile(gradient, (image_height, 1))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFBC.TOP:
-                gradient = np.linspace(224, 32, image_height)[:, None]
-                image = np.tile(gradient, (1, image_width))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case BGSourceFBC.BOTTOM:
-                gradient = np.linspace(32, 224, image_height)[:, None]
-                image = np.tile(gradient, (1, image_width))
-                input_bg = np.stack((image,) * 3, axis=-1).astype(np.uint8)
-
-            case _:
-                raise NotImplementedError("Wrong background source!")
-
-        return input_bg
-
-
-class ICLightArgs(BaseModel):
-    enabled: bool = False
-    model_type: ModelType = None
-    input_fg: Optional[np.ndarray] = None
-    uploaded_bg: Optional[np.ndarray] = None
-    bg_source_fc: BGSourceFC = BGSourceFC.NONE
-    bg_source_fbc: BGSourceFBC = BGSourceFBC.UPLOAD
-    remove_bg: bool = True
-    rembg_model: str = None
-    foreground_threshold: int = 255
-    background_threshold: int = 0
-    erode_size: int = 0
-    reinforce_fg: bool = True
-    detail_transfer: bool = False
-    detail_transfer_use_raw_input: bool = False
-    detail_transfer_blur_radius: int = 5
-
-    input_fg_rgb: Optional[np.ndarray] = None
-
-    @classmethod
-    def cls_decode_base64(cls, base64string: str) -> np.ndarray:
-        return np.array(api.decode_base64_to_image(base64string)).astype("uint8")
-
-    @validator("input_fg", "uploaded_bg", pre=True, allow_reuse=True)
-    def parse_image(cls, value) -> np.ndarray:
-        if isinstance(value, str):
-            return cls.cls_decode_base64(value)
-        assert isinstance(value, np.ndarray) or value is None
-        return value
-
-    @validator("model_type", pre=True, allow_reuse=True)
-    def parse_model_type(cls, value) -> ModelType:
+    @staticmethod
+    def parse_model_type(value) -> ModelType:
         if isinstance(value, str):
             return ModelType.get(value)
-        assert isinstance(value, ModelType) or value is None
+        assert isinstance(value, ModelType)
         return value
 
-    @root_validator
-    def process_input_fg(cls, values: dict) -> dict:
-        """Process input fg image into format [H, W, C=3]"""
-        input_fg = values.get("input_fg")
-        remove_bg: bool = values.get("remove_bg")
-        # Default args.
-        if input_fg is None:
-            return values
+    @staticmethod
+    def cls_decode_base64(base64string: str) -> np.ndarray:
+        return np.array(decode_base64_to_image(base64string)).astype("uint8")
 
-        if remove_bg:
-            input_fg_rgb: np.ndarray = run_rmbg(
-                input_fg,
-                values.get("rembg_model"),
-                values.get("foreground_threshold"),
-                values.get("background_threshold"),
-                values.get("erode_size"),
-            )
+    @staticmethod
+    def parse_image(value) -> np.ndarray:
+        if isinstance(value, str):
+            return ICLightArgs.cls_decode_base64(value)
+        assert isinstance(value, np.ndarray) or (value is None)
+        return value
+
+    def __init__(self, p: StableDiffusionProcessing, args: tuple):
+        self.enabled: bool = args[0]
+
+        self.model_type: ModelType = self.parse_model_type(args[1])
+        self.bg_source_fc: BGSourceFC = BGSourceFC(args[2])
+        self.bg_source_fbc: BGSourceFBC = BGSourceFBC(args[3])
+
+        if isinstance(p, StableDiffusionProcessingImg2Img):
+            input_image = np.asarray(p.init_images[0]).astype(np.uint8)
+            p.init_images[0] = Image.fromarray(args[4])
+            self.input_fg: np.ndarray = input_image
         else:
-            if len(input_fg.shape) < 3:
-                raise NotImplementedError("Does not support L Images...")
-            if input_fg.shape[-1] == 4:
-                input_fg_rgb = make_masked_area_grey(
-                    input_fg[..., :3],
-                    input_fg[..., 3:].astype(np.float32) / 255.0,
+            self.input_fg: np.ndarray = self.parse_image(args[4])
+
+        self.uploaded_bg: np.ndarray = self.parse_image(args[5])
+
+        self.remove_bg: bool = args[6]
+        self.rembg_model: str = args[7]
+        self.foreground_threshold = int(args[8])
+        self.background_threshold = int(args[9])
+        self.erode_size = int(args[10])
+
+        self.detail_transfer: bool = args[11]
+        self.detail_transfer_use_raw_input: bool = args[12] or (not self.remove_bg)
+        self.detail_transfer_blur_radius = int(args[13])
+
+        self.input_fg_rgb: np.ndarray = self.process_input_fg()
+
+        self.reinforce_fg: bool = args[14]
+
+        if self.reinforce_fg:
+            assert self.model_type == ModelType.FC
+            assert isinstance(p, StableDiffusionProcessingImg2Img)
+
+            lightmap = np.asarray(p.init_images[0]).astype(np.uint8)
+
+            mask = np.all(self.input_fg_rgb == np.array([127, 127, 127]), axis=-1)
+            mask = mask[..., None]  # [H, W, 1]
+            lightmap = resize_and_center_crop(
+                lightmap,
+                target_width=self.input_fg_rgb.shape[1],
+                target_height=self.input_fg_rgb.shape[0],
+            )
+            lightmap_rgb = lightmap[..., :3]
+            lightmap_alpha = lightmap[..., 3:4]
+            lightmap_rgb = self.input_fg_rgb * (1 - mask) + lightmap_rgb * mask
+            lightmap = np.concatenate([lightmap_rgb, lightmap_alpha], axis=-1).astype(
+                np.uint8
+            )
+
+            p.init_images[0] = Image.fromarray(lightmap)
+
+    def process_input_fg(self) -> np.ndarray:
+        """Process input fg image into format [H, W, C=3]"""
+
+        rgb: np.ndarray = None
+        if self.input_fg is None:
+            return rgb
+
+        if self.remove_bg:
+            rgb = run_rmbg(
+                self.input_fg,
+                self.rembg_model,
+                self.foreground_threshold,
+                self.background_threshold,
+                self.erode_size,
+            )
+
+        else:
+            if len(self.input_fg.shape) < 3:
+                raise NotImplementedError("Does not support greyscale image...")
+
+            if self.input_fg.shape[-1] == 4:
+                rgb = make_masked_area_grey(
+                    self.input_fg[..., :3],
+                    self.input_fg[..., 3:].astype(np.float32) / 255.0,
                 )
             else:
-                input_fg_rgb = input_fg
+                rgb = self.input_fg
 
-        assert input_fg_rgb.shape[2] == 3, "Input Image should be in RGB channels."
-        values["input_fg_rgb"] = input_fg_rgb
-        return values
+        if rgb.shape[2] != 3:
+            raise ValueError("Input Image should be in RGB channels...")
 
-    @classmethod
-    def fetch_from(cls, p: StableDiffusionProcessing):
-        script_runner: scripts.ScriptRunner = p.scripts
-        ic_light_script: scripts.Script = [
-            script
-            for script in script_runner.alwayson_scripts
-            if script.title() == "IC Light"
-        ][0]
-
-        args = p.script_args[ic_light_script.args_from : ic_light_script.args_to]
-        assert len(args) == 1
-
-        if args[0].get("enabled", False):
-            if isinstance(p, StableDiffusionProcessingImg2Img):
-                input_image = np.asarray(p.init_images[0]).astype(np.uint8)
-                p.init_images[0] = Image.fromarray(args[0]["input_fg"])
-                args[0]["input_fg"] = input_image
-            return ICLightArgs(**args[0])
-
-        return None
-
-    class Config:
-        arbitrary_types_allowed = True
+        return rgb
 
     def get_concat_cond(
         self,
-        processed_fg: np.ndarray,  # fg with bg removed.
+        processed_fg: np.ndarray,  # subject with background removed
         p: StableDiffusionProcessing,
     ) -> np.ndarray:
         """Returns concat condition in [B, H, W, C] format."""
@@ -262,24 +163,3 @@ class ICLightArgs(BaseModel):
                 raise SystemError
 
         return np.stack(np_concat, axis=0)
-
-    def get_lightmap(self, p: StableDiffusionProcessingImg2Img) -> np.ndarray:
-        assert self.model_type == ModelType.FC
-        assert isinstance(p, StableDiffusionProcessingImg2Img)
-        lightmap = np.asarray(p.init_images[0]).astype(np.uint8)
-
-        if self.reinforce_fg:
-            rgb_fg = self.input_fg_rgb
-            mask = np.all(rgb_fg == np.array([127, 127, 127]), axis=-1)
-            mask = mask[..., None]  # [H, W, 1]
-            lightmap = resize_and_center_crop(
-                lightmap, target_width=rgb_fg.shape[1], target_height=rgb_fg.shape[0]
-            )
-            lightmap_rgb = lightmap[..., :3]
-            lightmap_alpha = lightmap[..., 3:4]
-            lightmap_rgb = rgb_fg * (1 - mask) + lightmap_rgb * mask
-            lightmap = np.concatenate([lightmap_rgb, lightmap_alpha], axis=-1).astype(
-                np.uint8
-            )
-
-        return Image.fromarray(lightmap)

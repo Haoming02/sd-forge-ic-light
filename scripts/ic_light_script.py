@@ -1,20 +1,14 @@
-from modules import scripts, script_callbacks
+from modules.processing import StableDiffusionProcessingImg2Img
 from modules.ui_components import InputAccordion
-from modules.paths import models_path
-from modules.processing import (
-    StableDiffusionProcessing,
-    StableDiffusionProcessingTxt2Img,
-    StableDiffusionProcessingImg2Img,
-)
+from modules import scripts, script_callbacks
 
-from lib_iclight.args import ICLightArgs, BGSourceFC, BGSourceFBC
 from lib_iclight.model_loader import ModelType, detect_models
+from lib_iclight.bg_source import BGSourceFC, BGSourceFBC
 from lib_iclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
 from lib_iclight.rembg_utils import AVAILABLE_MODELS
 from lib_iclight.detail_utils import restore_detail
+from lib_iclight.args import ICLightArgs
 
-from typing import Optional, Tuple
-from dataclasses import dataclass
 from enum import Enum
 import gradio as gr
 import numpy as np
@@ -25,38 +19,9 @@ class BackendType(Enum):
     Forge = "Forge"
 
 
-@dataclass
-class A1111Context:
-    """Contains all components from A1111."""
-
-    txt2img_submit_button: Optional[gr.components.Component] = None
-    img2img_submit_button: Optional[gr.components.Component] = None
-
-    # Slider controls from A1111 WebUI.
-    img2img_w_slider: Optional[gr.components.Component] = None
-    img2img_h_slider: Optional[gr.components.Component] = None
-
-    img2img_image: Optional[gr.Image] = None
-
-    def set_component(self, component: gr.components.Component):
-        id_mapping = {
-            "txt2img_generate": "txt2img_submit_button",
-            "img2img_generate": "img2img_submit_button",
-            "img2img_width": "img2img_w_slider",
-            "img2img_height": "img2img_h_slider",
-            "img2img_image": "img2img_image",
-        }
-        elem_id = getattr(component, "elem_id", None)
-        if elem_id in id_mapping and getattr(self, id_mapping[elem_id]) is None:
-            setattr(self, id_mapping[elem_id], component)
-
-
 class ICLightScript(scripts.Script):
-    DEFAULT_ARGS = ICLightArgs()
-    a1111_context = A1111Context()
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self):
         self.args: ICLightArgs = None
 
         try:
@@ -71,26 +36,41 @@ class ICLightScript(scripts.Script):
             self.apply_ic_light = apply_ic_light
             self.backend_type = BackendType.A1111
 
+            from modules.launch_utils import git_tag
+
+            version = git_tag()
+            if version == "<none>":
+                return
+
+            major, minor, rev = version.split(".", 2)
+            if int(minor) < 10:
+                raise NotImplementedError(
+                    "\n[IC-Light] Only Automatic1111 v1.10.0 or later is supported!\n"
+                )
+
     def title(self):
         return "IC Light"
 
     def show(self, is_img2img):
         return scripts.AlwaysVisible
 
-    def ui(self, is_img2img: bool) -> Tuple[gr.components.Component, ...]:
+    def ui(self, is_img2img: bool) -> list[gr.components.Component]:
 
-        if is_img2img:
-            model_type_choices = [ModelType.FC.name]
-            bg_source_fc_choices = [e.value for e in BGSourceFC if e != BGSourceFC.NONE]
-        else:
-            model_type_choices = [ModelType.FC.name, ModelType.FBC.name]
-            bg_source_fc_choices = [BGSourceFC.NONE.value]
+        bg_source_fc_choices = (
+            [e.value for e in BGSourceFC if e != BGSourceFC.NONE]
+            if is_img2img
+            else [BGSourceFC.NONE.value]
+        )
 
         with InputAccordion(value=False, label=self.title()) as enabled:
             with gr.Row():
                 model_type = gr.Dropdown(
                     label="Mode",
-                    choices=model_type_choices,
+                    choices=(
+                        [ModelType.FC.name, ModelType.FBC.name]
+                        if (not is_img2img)
+                        else [ModelType.FC.name]
+                    ),
                     value=ModelType.FC.name,
                     interactive=(not is_img2img),
                 )
@@ -119,18 +99,26 @@ class ICLightScript(scripts.Script):
                     visible=False,
                 )
 
-            reinforce_fg = gr.Checkbox(
-                label="Reinforce Foreground",
-                info="Preserve the foreground base color",
-                value=False,
-                interactive=True,
+            bg_source_fc = gr.Radio(
+                label="Background Source",
+                choices=bg_source_fc_choices,
+                value=bg_source_fc_choices[-1],
+                type="value",
                 visible=is_img2img,
+                interactive=True,
             )
 
-            with InputAccordion(value=False, label="Background Removal") as remove_bg:
-                gr.Markdown(
-                    "<i>Disable if you already have a subject with the background removed</i>"
-                )
+            bg_source_fbc = gr.Radio(
+                label="Background Source",
+                choices=[BGSourceFBC.UPLOAD.value, BGSourceFBC.UPLOAD_FLIP.value],
+                value=BGSourceFBC.UPLOAD.value,
+                type="value",
+                visible=False,
+                interactive=True,
+            )
+
+            with InputAccordion(value=True, label="Background Removal") as remove_bg:
+                gr.Markdown("<i>Disable if the subject already has no background</i>")
 
                 rembg_model = gr.Dropdown(
                     label="Background Removal Model",
@@ -162,32 +150,12 @@ class ICLightScript(scripts.Script):
                     value=16,
                 )
 
-            bg_source_fc = gr.Radio(
-                label="Background Source",
-                choices=bg_source_fc_choices,
-                value=(
-                    BGSourceFC.CUSTOM.value if is_img2img else BGSourceFC.NONE.value
-                ),
-                type="value",
-                visible=is_img2img,
-                interactive=True,
-            )
-
-            bg_source_fbc = gr.Radio(
-                label="Background Source",
-                choices=[BGSourceFBC.UPLOAD.value, BGSourceFBC.UPLOAD_FLIP.value],
-                value=BGSourceFBC.UPLOAD.value,
-                type="value",
-                visible=False,
-                interactive=True,
-            )
-
             with InputAccordion(
                 value=False, label="Restore Details"
             ) as detail_transfer:
 
                 detail_transfer_use_raw_input = gr.Checkbox(
-                    label="Use the [Original Input] instead of the [Image with Background Removed]"
+                    label="Use the [Original Input] instead of the [Subject with Background Removed]"
                 )
 
                 detail_transfer_blur_radius = gr.Slider(
@@ -196,41 +164,16 @@ class ICLightScript(scripts.Script):
                     minimum=1,
                     maximum=9,
                     step=2,
-                    value=5,
+                    value=3,
                 )
 
-        state = gr.State({})
-        (
-            ICLightScript.a1111_context.img2img_submit_button
-            if is_img2img
-            else ICLightScript.a1111_context.txt2img_submit_button
-        ).click(
-            fn=lambda *args: dict(
-                zip(
-                    vars(self.DEFAULT_ARGS).keys(),
-                    args,
-                )
-            ),
-            inputs=[
-                enabled,
-                model_type,
-                input_fg,
-                uploaded_bg,
-                bg_source_fc,
-                bg_source_fbc,
-                remove_bg,
-                rembg_model,
-                foreground_threshold,
-                background_threshold,
-                erode_size,
-                reinforce_fg,
-                detail_transfer,
-                detail_transfer_use_raw_input,
-                detail_transfer_blur_radius,
-            ],
-            outputs=state,
-            queue=False,
-        )
+            reinforce_fg = gr.Checkbox(
+                label="Reinforce Foreground",
+                info="Paste the Subject onto the Lighting Conditioning",
+                value=False,
+                interactive=True,
+                visible=is_img2img,
+            )
 
         if is_img2img:
 
@@ -283,38 +226,49 @@ class ICLightScript(scripts.Script):
                 show_progress=False,
             )
 
-        return (state,)
+        components: list = [
+            enabled,
+            model_type,
+            bg_source_fc,
+            bg_source_fbc,
+            input_fg,
+            uploaded_bg,
+            remove_bg,
+            rembg_model,
+            foreground_threshold,
+            background_threshold,
+            erode_size,
+            detail_transfer,
+            detail_transfer_use_raw_input,
+            detail_transfer_blur_radius,
+            reinforce_fg,
+        ]
 
-    def before_process(self, p, *args, **kwargs):
+        for comp in components:
+            comp.do_not_save_to_config = True
+
+        return components
+
+    def before_process(self, p, *args):
         self.detailed_images: list = []
 
-        _args = ICLightArgs.fetch_from(p)
-        if not _args:
+        if not bool(args[0]):
             self.args = None
-            return
+        else:
+            self.args = ICLightArgs(p, args)
+            p.extra_generation_params["IC-Light"] = True
 
-        if isinstance(p, StableDiffusionProcessingImg2Img):
-            p.init_images[0] = _args.get_lightmap(p)
-
-        self.args = _args
-
-    def process_before_every_sampling(
-        self, p: StableDiffusionProcessing, *args, **kwargs
-    ):
-        """
-        Similar to process(), called before every sampling.
-        If you use high-res fix, this will be called twice.
-        """
-        if (self.args is None) or (not self.args.enabled):
+    def process_before_every_sampling(self, p, *args, **kwargs):
+        if not (self.args and getattr(self.args, "enabled", False)):
             return
 
         self.apply_ic_light(p, self.args)
 
     def postprocess_image(self, p, pp, *args, **kwargs):
-        if (
-            (self.args is None)
-            or (not self.args.enabled)
-            or (not self.args.detail_transfer)
+        if not (
+            self.args
+            and getattr(self.args, "enabled", False)
+            and getattr(self.args, "detail_transfer", False)
         ):
             return
 
@@ -326,24 +280,20 @@ class ICLightScript(scripts.Script):
                     if self.args.detail_transfer_use_raw_input
                     else self.args.input_fg_rgb
                 ),
-                int(self.args.detail_transfer_blur_radius),
+                self.args.detail_transfer_blur_radius,
             )
         )
 
     def postprocess(self, p, processed, *args, **kwargs):
-        if (self.args is None) or (not self.args.enabled):
+        if not (self.args and getattr(self.args, "enabled", False)):
             return
+
         if self.backend_type == BackendType.A1111:
-            if getattr(p, "extra_result_images", None):
-                processed.images += p.extra_result_images
+            if extras := getattr(p, "extra_result_images", None):
+                processed.images += extras
+
         if self.detailed_images:
             processed.images += self.detailed_images
 
-    @staticmethod
-    def on_after_component(component, **_kwargs):
-        """Register the A1111 component."""
-        ICLightScript.a1111_context.set_component(component)
 
-
-script_callbacks.on_after_component(ICLightScript.on_after_component)
-script_callbacks.on_before_ui(lambda: detect_models(models_path))
+script_callbacks.on_before_ui(detect_models)

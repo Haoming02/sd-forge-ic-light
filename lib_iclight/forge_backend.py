@@ -1,16 +1,16 @@
 from modules.processing import StableDiffusionProcessing
 
-import numpy as np
-import torch
-
 from ldm_patched.modules.model_management import get_torch_device
 from ldm_patched.modules.model_patcher import ModelPatcher
 from ldm_patched.modules.utils import load_torch_file
 from ldm_patched.modules.sd import VAE
 
-from .args import ICLightArgs
-from .ic_light_nodes import ICLight
 from .utils import forge_numpy2pytorch
+from .ic_light_nodes import ICLight
+from .args import ICLightArgs
+
+import numpy as np
+import torch
 
 
 def apply_ic_light(
@@ -34,15 +34,17 @@ def apply_ic_light(
     pixel_concat = forge_numpy2pytorch(args.get_concat_cond(input_fg_rgb, p)).to(
         device=vae.device, dtype=torch.float16
     )
+
     # [B, H, W, C]
-    # Forge/ComfyUI's VAE accepts [B, H, W, C] format.
+    # Forge/ComfyUI's VAE accepts [B, H, W, C] format
     pixel_concat = pixel_concat.movedim(1, 3)
 
     patched_unet: ModelPatcher = node.apply(
         model=work_model,
         ic_model_state_dict=ic_model_state_dict,
         c_concat={"samples": vae.encode(pixel_concat)},
-    )[0]
+    )
+
     p.sd_model.forge_objects.unet = patched_unet
 
     # Add input image to extra result images

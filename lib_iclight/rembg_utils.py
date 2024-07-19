@@ -23,13 +23,13 @@ GREY = (127, 127, 127, 255)
 
 
 def run_rmbg(
-    np_image: np.array,
-    model: str = "u2net_human_seg",
-    foreground_threshold: int = 225,
-    background_threshold: int = 16,
-    erode_size: int = 16,
+    np_image: np.ndarray,
+    model: str,
+    foreground_threshold: int,
+    background_threshold: int,
+    erode_size: int,
     bg: tuple = GREY,
-) -> np.array:
+) -> np.ndarray:
 
     if "U2NET_HOME" not in os.environ:
         os.environ["U2NET_HOME"] = os.path.join(models_path, "u2net")

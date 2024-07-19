@@ -1,28 +1,28 @@
 from modules.processing import StableDiffusionProcessing
 from modules import devices
 
+try:
+    from lib_modelpatcher.model_patcher import ModulePatch
+except ImportError:
+    print("\n[IC-Light] Please install [sd-webui-model-patcher] first!")
+    print("https://github.com/huchenlei/sd-webui-model-patcher\n")
+    raise SystemExit
+
+from .utils import numpy2pytorch
+from .args import ICLightArgs
+
 from typing import Callable
 import safetensors.torch
 import numpy as np
 import torch
 
-try:
-    from lib_modelpatcher.model_patcher import ModulePatch
-except ImportError as e:
-    print("Please install [sd-webui-model-patcher] first!")
-    print("https://github.com/huchenlei/sd-webui-model-patcher")
-    raise e
-
-from .args import ICLightArgs
-from .utils import numpy2pytorch
-
 
 def vae_encode(sd_model, image: torch.Tensor) -> torch.Tensor:
     """
-    image: [B, C, H, W] format tensor. Value from -1.0 to 1.0
+    image: [B, C, H, W] format tensor, ranging from -1.0 to 1.0
     Return: tensor in [B, C, H, W] format
 
-    Note: Input image format differs from forge/comfy's vae input format
+    Note: Input image format differs from Forge/Comfy's VAE input format
     """
     return sd_model.get_first_stage_encoding(sd_model.encode_first_stage(image))
 
@@ -53,7 +53,7 @@ def apply_ic_light(
 
     def apply_c_concat(unet, old_forward: Callable) -> Callable:
         def new_forward(x, timesteps=None, context=None, **kwargs):
-            # Expand according to batch number.
+            # Expand according to batch number
             c_concat = torch.cat(
                 ([concat_conds.to(x.device)] * (x.shape[0] // concat_conds.shape[0])),
                 dim=0,
@@ -63,13 +63,13 @@ def apply_ic_light(
 
         return new_forward
 
-    # Patch unet forward.
+    # Patch unet forward
     model_patcher = p.get_model_patcher()
     model_patcher.add_module_patch(
         "diffusion_model", ModulePatch(create_new_forward_func=apply_c_concat)
     )
 
-    # Patch weights.
+    # Patch weights
     model_patcher.add_patches(
         patches={
             "diffusion_model." + key: (value.to(dtype=dtype, device=device),)
@@ -80,7 +80,7 @@ def apply_ic_light(
     # Add input image to extra result images
     if not getattr(p, "is_hr_pass", False):
         if not getattr(p, "extra_result_images", None):
-            p.extra_result_images = [input_fg_rgb]
+            setattr(p, "extra_result_images", [input_fg_rgb])
         else:
             assert isinstance(p.extra_result_images, list)
             p.extra_result_images.append(input_fg_rgb)

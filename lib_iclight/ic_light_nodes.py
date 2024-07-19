@@ -2,7 +2,7 @@ from ldm_patched.modules.model_patcher import ModelPatcher
 from ldm_patched.modules.model_base import BaseModel
 from ldm_patched.modules import model_management
 
-from typing import Tuple, TypedDict, Callable
+from typing import TypedDict, Callable
 import torch
 
 
@@ -21,15 +21,16 @@ class ICLight:
         model: ModelPatcher,
         ic_model_state_dict: dict,
         c_concat: dict,
-    ) -> Tuple[ModelPatcher]:
+    ) -> ModelPatcher:
 
         device = model_management.get_torch_device()
         dtype = model_management.unet_dtype()
         work_model = model.clone()
 
-        # Apply scale factor.
+        # Apply scale factor
         base_model: BaseModel = work_model.model
         scale_factor = base_model.model_config.latent_format.scale_factor
+
         # [B, 4, H, W]
         concat_conds: torch.Tensor = c_concat["samples"] * scale_factor
         # [1, 4 * B, H, W]
@@ -47,17 +48,16 @@ class ICLight:
             )
             return params
 
-        def unet_dummy_apply(unet_apply: Callable, params: UnetParams):
-            """A dummy unet apply wrapper serving as the endpoint of wrapper
-            chain."""
+        def unet_dummy_apply(unet_apply: Callable, params: UnetParams) -> Callable:
+            """A dummy unet apply wrapper serving as the endpoint of wrapper chain"""
             return unet_apply(x=params["input"], t=params["timestep"], **params["c"])
 
-        # Compose on existing `model_function_wrapper`.
+        # Compose on existing `model_function_wrapper`
         existing_wrapper = work_model.model_options.get(
             "model_function_wrapper", unet_dummy_apply
         )
 
-        def wrapper_func(unet_apply: Callable, params: UnetParams):
+        def wrapper_func(unet_apply: Callable, params: UnetParams) -> Callable:
             return existing_wrapper(unet_apply, params=apply_c_concat(params))
 
         work_model.set_model_unet_function_wrapper(wrapper_func)
@@ -69,4 +69,4 @@ class ICLight:
             }
         )
 
-        return (work_model,)
+        return work_model
