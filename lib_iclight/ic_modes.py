@@ -12,6 +12,6 @@ t2i_fbc = (
 )
 
 i2i_fc = (
-    "<ins><b>Relighting with Conditions</b></ins><br>"
+    "<ins><b>Relighting with Light-Map Condition</b></ins><br>"
     "Given an input image, generate a new background using conditioned lighting."
 )

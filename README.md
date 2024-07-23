@@ -1,8 +1,6 @@
 # SD Forge IC-Light
 This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-diffusion-webui-forge), which implements [IC-Light](https://github.com/lllyasviel/IC-Light), allowing you to manipulate the illumination of images.
 
-> This only works with **SD 1.5** checkpoints
-
 <details>
 <summary>for <b>Automatic1111 Webui</b></summary>
 
@@ -17,20 +15,119 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 3. Place the 2 models inside said folder
 4. **(Optional)** You can rename the models, as long as the filenames contain either **`fc`** or **`fbc`**
 
-## How to use
-> Recommended to use low CFG and strong denosing strength
+## How to Use
 
-**W.I.P**
+> Only works with **SD 1.5** checkpoints
+
+<ins><b>Index</b></ins>
+
+1. [txt2img - FC](#txt2img---fc)
+2. [txt2img - FBC](#txt2img---fbc)
+3. [img2img - FC](#img2img---fc)
+    - [Reinforce Foreground](#reinforce-foreground)
+4. Options
+    - [Background Removal](#background-removal)
+    - [Restore Details](#restore-details)
+
+<p align="center">
+<img src="assets/subject_input.jpg" width=256><br>
+example <code>Foreground</code> image
+</p>
+
+### txt2img - FC
+> Relighting with Foreground Condition
+
+- In the Extension input, upload an image of your subject, then generate a new background using **txt2img**
+- If the generation aspect ratio is different, the `Foreground` image will be `Crop and resize` first
+- `Hires. Fix` is supported
+
+<p align="center">
+<img src="assets/fc_output.jpg" width=384><br>
+example output<br>
+<b>prompt:</b> <code>outdoors, garden, flowers</code>
+</p>
+
+### txt2img - FBC
+> Relighting with Foreground and Background Condition
+
+- In the Extension inputs, upload an image of your subject, and another image as the background
+- Simply write some quality tags as the prompts
+- `Hires. Fix` is supported
+
+<p align="center">
+<img src="assets/bg_beach.jpg" width=384><br>
+example <code>Background</code> image<br>
+<img src="assets/fbc_output.jpg" width=384><br>
+example output<br>
+<b>prompt:</b> <code>(high quality, best quality)</code>
+</p>
+
+### img2img - FC
+> Relighting with Light-Map Condition
+
+- In the **img2img** input, upload an image of your subject as normal
+- In the Extension input, you can select between different light directions, or select `Custom LightMap` and upload one yourself
+- Describe the scene with the prompts
+- Low `CFG` *(`~2.0`)* and high `Denoising strength` *(`~ 1.0`)* is recommended
+
+<p align="center">
+<img src="assets/i2i_output.jpg" width=384><br>
+example output<br>
+<b>prompt:</b> <code>beach, sunset</code>
+</p>
+
+<details>
+<summary><b>Reinforce Foreground</b></summary>
+
+When enabled, the subject will be additionally pasted onto the light map to preserve the original color. This may improve the details at the cost of weaker lighting influence.
+
+<p align="center">
+<b>prompt:</b> <code>fiery, bright, day, explosion</code><br>
+</p>
+
+<p align="center">
+<img src="assets/reinforce_off.jpg" width=256><br>
+reinforce <b><ins>off</ins></b><br>
+The suit gets brighten to a khaki color
+</p>
+
+<p align="center">
+<img src="assets/reinforce_on.jpg" width=256><br>
+reinforce <b>on</b><br>
+The suit retains its original color
+</p>
+
+</details>
+
+### Options
+> These settings are avaliable for all 3 modes
+
+#### Background Removal
+
+Use the **[rembg](https://github.com/danielgatis/rembg)** package to separate the subject from the background. If you already have an subject image with alpha, you can simply disable this option. When enabled, this will also append the result to the output.
+
+If you have an anime subject instead, select `isnet-anime` from the **Background Removal Model** dropdown. If the separation is not clean enough, edit the **Threshold** parameters to improve the accuracy.
+
+<p align="center">
+<img src="assets/subject_rembg.jpg" width=256><br>
+example result
+</p>
+
+#### Restore Details
+
+Use the *Difference of Gaussian* algorithm to transfer the details from the input to the output.
+
+By default, this only uses the `DoG` of the subject without background. Enabling the **checkbox** will use the `DoG` of the entire input image instead. Increasing the **Blur Radius** will strengthen the effect.
 
 ## Roadmap
-- [ ] How to Use
 - [X] Select different `rembg` models
 - [ ] API Support
-- [ ] Improve DoG
+- [ ] Improve `Reinforce Foreground`
+- [ ] Improve `Restore Details`
 
 ## Known Issue
 - [ ] If you click `Reuse Seed` when previewing the appended images instead of the first result image, it will result in an error.
-    > This is mostly upstream, as even the built-in ControlNet raises this error. I probably won't address it until the Webui has an unified way to append images...
+    > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webui has an unified way to properly append images...
 
 <hr>
 
