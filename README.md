@@ -1,6 +1,8 @@
 # SD Forge IC-Light
 This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-diffusion-webui-forge), which implements [IC-Light](https://github.com/lllyasviel/IC-Light), allowing you to manipulate the illumination of images.
 
+> Now compatible with [reForge](https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev_upstream)!
+
 <details>
 <summary>for <b>Automatic1111 Webui</b></summary>
 
@@ -73,7 +75,8 @@ example output<br>
 <p align="center">
 <img src="assets/i2i_output.jpg" width=384><br>
 example output<br>
-<b>prompt:</b> <code>beach, sunset</code>
+<b>prompt:</b> <code>beach, sunset</code><br>
+<b>source:</b> <code>Right Light</code>
 </p>
 
 <details>
@@ -83,6 +86,7 @@ When enabled, the subject will be additionally pasted onto the light map to pres
 
 <p align="center">
 <b>prompt:</b> <code>fiery, bright, day, explosion</code><br>
+<b>source:</b> <code>Bottom Light</code>
 </p>
 
 <p align="center">
@@ -93,7 +97,7 @@ The suit gets brighten to a khaki color
 
 <p align="center">
 <img src="assets/reinforce_on.jpg" width=256><br>
-reinforce <b>on</b><br>
+reinforce <b><ins>on</ins></b><br>
 The suit retains its original color
 </p>
 

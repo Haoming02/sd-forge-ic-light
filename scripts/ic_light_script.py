@@ -9,6 +9,8 @@ from lib_iclight.rembg_utils import AVAILABLE_MODELS
 from lib_iclight.detail_utils import restore_detail
 from lib_iclight.args import ICLightArgs
 
+import lib_iclight.patch_weight
+
 from enum import Enum
 import gradio as gr
 import numpy as np
