@@ -1,6 +1,6 @@
-from backend.patcher.base import ModelPatcher
-from backend.modules.k_model import KModel
-from backend import memory_management
+from ldm_patched.modules.model_patcher import ModelPatcher
+from ldm_patched.modules.model_base import BaseModel
+from ldm_patched.modules import model_management
 
 from typing import TypedDict, Callable
 import torch
@@ -23,13 +23,13 @@ class ICLight:
         c_concat: dict,
     ) -> ModelPatcher:
 
-        device = memory_management.get_torch_device()
-        dtype = memory_management.unet_dtype()
+        device = model_management.get_torch_device()
+        dtype = model_management.unet_dtype()
         work_model = model.clone()
 
         # Apply scale factor
-        base_model: KModel = work_model.model
-        scale_factor = base_model.config.latent_format.scale_factor
+        base_model: BaseModel = work_model.model
+        scale_factor = base_model.model_config.latent_format.scale_factor
 
         # [B, 4, H, W]
         concat_conds: torch.Tensor = c_concat["samples"] * scale_factor
@@ -63,11 +63,10 @@ class ICLight:
         work_model.set_model_unet_function_wrapper(wrapper_func)
 
         work_model.add_patches(
-            filename="ic-light",
             patches={
                 ("diffusion_model." + key): (value.to(dtype=dtype, device=device),)
                 for key, value in ic_model_state_dict.items()
-            },
+            }
         )
 
         return work_model

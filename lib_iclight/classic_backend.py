@@ -1,12 +1,12 @@
 from modules.processing import StableDiffusionProcessing
 
-from backend.memory_management import get_torch_device
-from backend.patcher.base import ModelPatcher
-from backend.utils import load_torch_file
-from backend.patcher.vae import VAE
+from ldm_patched.modules.model_management import get_torch_device
+from ldm_patched.modules.model_patcher import ModelPatcher
+from ldm_patched.modules.utils import load_torch_file
+from ldm_patched.modules.sd import VAE
 
 from .utils import forge_numpy2pytorch
-from .ic_light_nodes import ICLight
+from .classic_ic_light_nodes import ICLight
 from .args import ICLightArgs
 
 import numpy as np

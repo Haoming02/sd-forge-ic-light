@@ -1,4 +1,3 @@
-from modules.processing import StableDiffusionProcessingImg2Img
 from modules.ui_components import InputAccordion
 from modules import scripts, script_callbacks
 
@@ -9,8 +8,6 @@ from lib_iclight.rembg_utils import AVAILABLE_MODELS
 from lib_iclight.detail_utils import restore_detail
 from lib_iclight.args import ICLightArgs
 
-import lib_iclight.patch_weight
-
 from enum import Enum
 import gradio as gr
 import numpy as np
@@ -19,6 +16,8 @@ import numpy as np
 class BackendType(Enum):
     A1111 = "A1111"
     Forge = "Forge"
+    Classic = "Classic"
+    reForge = "reForge"
 
 
 class ICLightScript(scripts.Script):
@@ -29,26 +28,45 @@ class ICLightScript(scripts.Script):
         try:
             from lib_iclight.forge_backend import apply_ic_light
 
-            self.apply_ic_light = apply_ic_light
             self.backend_type = BackendType.Forge
+            self.apply_ic_light = apply_ic_light
+            return
 
         except ImportError:
-            from lib_iclight.a1111_backend import apply_ic_light
+            pass
+
+        try:
+            from lib_iclight.classic_backend import apply_ic_light
+            from modules_forge import forge_version
+
+            if "v1.8.0" in forge_version.version:
+                self.backend_type = BackendType.Classic
+            else:
+                self.backend_type = BackendType.reForge
+                import lib_iclight.patch_weight
 
             self.apply_ic_light = apply_ic_light
-            self.backend_type = BackendType.A1111
+            return
 
-            from modules.launch_utils import git_tag
+        except ImportError:
+            pass
 
-            version = git_tag()
-            if version == "<none>":
-                return
+        from lib_iclight.a1111_backend import apply_ic_light
 
-            major, minor, rev = version.split(".", 2)
-            if int(minor) < 10:
-                raise NotImplementedError(
-                    "\n[IC-Light] Only Automatic1111 v1.10.0 or later is supported!\n"
-                )
+        self.backend_type = BackendType.A1111
+        self.apply_ic_light = apply_ic_light
+
+        from modules.launch_utils import git_tag
+
+        version = git_tag()
+        if version == "<none>":
+            return
+
+        major, minor, rev = version.split(".", 2)
+        if int(minor) < 10:
+            raise NotImplementedError(
+                "\n[IC-Light] Only Automatic1111 v1.10.0 or later is supported!\n"
+            )
 
     def title(self):
         return "IC Light"

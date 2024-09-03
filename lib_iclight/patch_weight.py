@@ -7,15 +7,16 @@ Modified by. Haoming02 to work with reForge
 
 from ldm_patched.modules.model_management import cast_to_device
 from ldm_patched.modules.model_patcher import ModelPatcher
-import functools
+from functools import wraps
+from typing import Callable
 import torch
 
 
-def calculate_weight_adjust_channel(func):
+def calculate_weight_adjust_channel(func: Callable):
     """Patches weight application to accept multi-channel inputs"""
 
     @torch.inference_mode()
-    @functools.wraps(func)
+    @wraps(func)
     def calculate_weight(
         self: ModelPatcher, patches, weight: torch.Tensor, key: str
     ) -> torch.Tensor:
@@ -64,6 +65,7 @@ def calculate_weight_adjust_channel(func):
                     ] += new_diff
                     new_weight = new_weight.contiguous().clone()
                     weight = new_weight
+
         return weight
 
     return calculate_weight

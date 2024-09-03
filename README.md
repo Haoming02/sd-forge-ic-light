@@ -1,7 +1,26 @@
 # SD Forge IC-Light
 This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-diffusion-webui-forge), which implements [IC-Light](https://github.com/lllyasviel/IC-Light), allowing you to manipulate the illumination of images.
 
-> Now compatible with [reForge](https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev_upstream)!
+## Compatibility Matrix
+
+> **Last Checked:** 2024 Sep.03
+
+<table>
+    <tr align="center">
+        <th>Automatic1111 <a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/v1.10.1">v1.10.1</a></th>
+        <th><a href="https://github.com/lllyasviel/stable-diffusion-webui-forge">Forge</a></th>
+        <th>Forge <a href="https://github.com/Haoming02/sd-webui-forge-classic">Classic</a></th>
+        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/main">main</a></th>
+        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev_upstream">dev_upstream</a></th>
+    </tr>
+    <tr align="center">
+        <td><b>Working</b></td>
+        <td><b>Working</b></td>
+        <td><b>Working</b></td>
+        <td><b>Working</b></td>
+        <td><b>Pending: <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/issues/137">#137</a></b></td>
+    </tr>
+</table>
 
 <details>
 <summary>for <b>Automatic1111 Webui</b></summary>
@@ -12,10 +31,10 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 </details>
 
 ## Getting Started
-1. Download the <ins>two</ins> models from [Releases](https://github.com/Haoming02/sd-forge-ic-light/releases)
+1. Download the <ins><b>two</b></ins> models from [Releases](https://github.com/Haoming02/sd-forge-ic-light/releases)
 2. Create a new folder, `ic-light`, inside your webui `models` folder
 3. Place the 2 models inside said folder
-4. **(Optional)** You can rename the models, as long as the filenames contain either **`fc`** or **`fbc`**
+4. **(Optional)** You can rename the models, as long as the filenames contain either **`fc`** or **`fbc`** respectively
 
 ## How to Use
 
