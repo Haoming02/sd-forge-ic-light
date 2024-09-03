@@ -7,11 +7,11 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 <table>
     <tr align="center">
-        <th>Automatic1111 <a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/v1.10.1">v1.10.1</a></th>
-        <th><a href="https://github.com/lllyasviel/stable-diffusion-webui-forge">Forge</a></th>
-        <th>Forge <a href="https://github.com/Haoming02/sd-webui-forge-classic">Classic</a></th>
-        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/main">main</a></th>
-        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev_upstream">dev_upstream</a></th>
+        <th>Automatic1111<br><a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/v1.10.1">v1.10.1</a></th>
+        <th><a href="https://github.com/lllyasviel/stable-diffusion-webui-forge">Forge</a><br>(Gradio 4)</th>
+        <th>Forge <a href="https://github.com/Haoming02/sd-webui-forge-classic">Classic</a><br>(Gradio 3)</th>
+        <th>reForge<br><a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/main">main</a></th>
+        <th>reForge<br><a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev_upstream">dev_upstream</a></th>
     </tr>
     <tr align="center">
         <td><b>Working</b></td>
