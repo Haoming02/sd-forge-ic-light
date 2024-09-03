@@ -1,7 +1,7 @@
 # SD Forge IC-Light
 This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-diffusion-webui-forge), which implements [IC-Light](https://github.com/lllyasviel/IC-Light), allowing you to manipulate the illumination of images.
 
-## Compatibility Matrix
+### Compatibility Matrix
 
 > **Last Checked:** 2024 Sep.03
 
@@ -40,7 +40,7 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 > Only works with **SD 1.5** checkpoints
 
-<ins><b>Index</b></ins>
+#### Index
 
 1. [txt2img - FC](#txt2img---fc)
 2. [txt2img - FBC](#txt2img---fbc)
@@ -77,7 +77,10 @@ example output<br>
 
 <p align="center">
 <img src="assets/bg_beach.jpg" width=384><br>
-example <code>Background</code> image<br>
+example <code>Background</code> image
+</p>
+
+<p align="center">
 <img src="assets/fbc_output.jpg" width=384><br>
 example output<br>
 <b>prompt:</b> <code>(high quality, best quality)</code>
@@ -98,8 +101,10 @@ example output<br>
 <b>source:</b> <code>Right Light</code>
 </p>
 
+#### Reinforce Foreground
+
 <details>
-<summary><b>Reinforce Foreground</b></summary>
+<summary>info</summary>
 
 When enabled, the subject will be additionally pasted onto the light map to preserve the original color. This may improve the details at the cost of weaker lighting influence.
 
@@ -108,10 +113,12 @@ When enabled, the subject will be additionally pasted onto the light map to pres
 <b>source:</b> <code>Bottom Light</code>
 </p>
 
+<br>
+
 <p align="center">
 <img src="assets/reinforce_off.jpg" width=256><br>
 reinforce <b><ins>off</ins></b><br>
-The suit gets brighten to a khaki color
+The suit gets brightened to a khaki color
 </p>
 
 <p align="center">
@@ -122,14 +129,18 @@ The suit retains its original color
 
 </details>
 
+<br>
+
 ### Options
 > These settings are avaliable for all 3 modes
 
 #### Background Removal
 
-Use the **[rembg](https://github.com/danielgatis/rembg)** package to separate the subject from the background. If you already have an subject image with alpha, you can simply disable this option. When enabled, this will also append the result to the output.
-
-If you have an anime subject instead, select `isnet-anime` from the **Background Removal Model** dropdown. If the separation is not clean enough, edit the **Threshold** parameters to improve the accuracy.
+- Use the **[rembg](https://github.com/danielgatis/rembg)** package to separate the subject from the background.
+- If you already have a subject image with alpha, you can simply disable this option.
+- If you have an anime subject instead, select `isnet-anime` from the **Background Removal Model** dropdown.
+- When this is enabled, it will additionally append the result to the outputs.
+- If the separation is not clean enough, edit the **Threshold** parameters to improve the accuracy.
 
 <p align="center">
 <img src="assets/subject_rembg.jpg" width=256><br>
@@ -140,7 +151,9 @@ example result
 
 Use the *Difference of Gaussian* algorithm to transfer the details from the input to the output.
 
-By default, this only uses the `DoG` of the subject without background. Enabling the **checkbox** will use the `DoG` of the entire input image instead. Increasing the **Blur Radius** will strengthen the effect.
+By default, this only uses the `DoG` of the subject without background. You can also switch to using the `DoG` of the entire input image instead. Increasing the **Blur Radius** will strengthen the effect.
+
+<br>
 
 ## Roadmap
 - [X] Select different `rembg` models
@@ -150,7 +163,7 @@ By default, this only uses the `DoG` of the subject without background. Enabling
 
 ## Known Issue
 - [ ] If you click `Reuse Seed` when previewing the appended images instead of the first result image, it will result in an error.
-    > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webui has an unified way to properly append images...
+    > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webuis have an unified way to properly append images...
 
 <hr>
 
