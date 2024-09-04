@@ -155,6 +155,13 @@ By default, this only uses the `DoG` of the subject without background. You can 
 
 <br>
 
+## Settings
+
+> The settings are in the **IC Light** section under the <ins>Stable Diffusion</ins> category in the **Settings** tab
+
+- **Sync Resolution Button:** Adds a button in the `txt2img` tab that changes the `Width` and `Height` parameters to the cloest ratio of the uploaded `Foreground` image
+- **All Rembg Models:** By default, the Extension only shows `u2net_human_seg` and `isnet-anime` options. If those do not suit your needs *(**eg.** your subject is not a "person")*, you may enable this to list all available models instead.
+
 ## Roadmap
 - [X] Select different `rembg` models
 - [ ] API Support

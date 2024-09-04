@@ -1,16 +1,25 @@
+from modules.script_callbacks import on_before_ui
 from modules.ui_components import InputAccordion
-from modules import scripts, script_callbacks
+from modules.shared import opts
+from modules import scripts
 
 from lib_iclight.model_loader import ModelType, detect_models
 from lib_iclight.bg_source import BGSourceFC, BGSourceFBC
 from lib_iclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
-from lib_iclight.rembg_utils import AVAILABLE_MODELS
 from lib_iclight.detail_utils import restore_detail
 from lib_iclight.args import ICLightArgs
 
 from enum import Enum
 import gradio as gr
 import numpy as np
+
+if getattr(opts, "ic_all_rembg", False):
+    from lib_iclight.rembg_utils import ALL_MODELS as AVAILABLE_MODELS
+else:
+    from lib_iclight.rembg_utils import BASIC_MODELS as AVAILABLE_MODELS
+
+T2I_WIDTH: None
+T2I_HEIGHT: None
 
 
 class BackendType(Enum):
@@ -74,6 +83,21 @@ class ICLightScript(scripts.Script):
     def show(self, is_img2img):
         return scripts.AlwaysVisible
 
+    def after_component(self, component, **kwargs):
+        if not getattr(opts, "ic_sync_dim", True):
+            return
+
+        if not (elem_id := kwargs.get("elem_id", None)):
+            return
+
+        if elem_id == "txt2img_width":
+            global T2I_WIDTH
+            T2I_WIDTH = component
+
+        if elem_id == "txt2img_height":
+            global T2I_HEIGHT
+            T2I_HEIGHT = component
+
     def ui(self, is_img2img: bool) -> list[gr.components.Component]:
 
         bg_source_fc_choices = (
@@ -117,6 +141,30 @@ class ICLightScript(scripts.Script):
                     height=480,
                     interactive=True,
                     visible=False,
+                )
+
+            if (not is_img2img) and getattr(opts, "ic_sync_dim", True):
+
+                def parse_resolution(img: np.ndarray | None) -> list[int, int]:
+                    if img is None:
+                        return [gr.update(), gr.update()]
+
+                    height, width, channel = img.shape
+                    while (width > 2048) or (height > 2048):
+                        width /= 2
+                        height /= 2
+
+                    width = int(round(width / 64) * 64)
+                    height = int(round(height / 64) * 64)
+
+                    return [width, height]
+
+                sync = gr.Button("Sync Resolution to Width & Height")
+                sync.click(
+                    fn=parse_resolution,
+                    inputs=[input_fg],
+                    outputs=[T2I_WIDTH, T2I_HEIGHT],
+                    show_progress="hidden",
                 )
 
             bg_source_fc = gr.Radio(
@@ -316,4 +364,4 @@ class ICLightScript(scripts.Script):
             processed.images += self.detailed_images
 
 
-script_callbacks.on_before_ui(detect_models)
+on_before_ui(detect_models)

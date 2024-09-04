@@ -9,14 +9,19 @@ import numpy as np
 import rembg
 import os
 
-AVAILABLE_MODELS = (
+BASIC_MODELS = (
     "u2net_human_seg",
-    # "u2net",
-    # "u2netp",
-    # "u2net_cloth_seg",
     "isnet-anime",
-    # "isnet-general-use",
-    # "silueta",
+)
+
+ALL_MODELS = (
+    "u2net",
+    "u2netp",
+    "u2net_human_seg",
+    "u2net_cloth_seg",
+    "isnet-anime",
+    "isnet-general-use",
+    "silueta",
 )
 
 GREY = (127, 127, 127, 255)
@@ -40,7 +45,7 @@ def run_rmbg(
         image,
         session=rembg.new_session(
             model_name=model,
-            providers=["CPUExecutionProvider"],
+            providers=["CPUExecutionProvider", "CUDAExecutionProvider"],
         ),
         alpha_matting=True,
         alpha_matting_foreground_threshold=foreground_threshold,
