@@ -24,7 +24,7 @@ class ICLight:
     ) -> ModelPatcher:
 
         device = memory_management.get_torch_device()
-        dtype = memory_management.unet_dtype()
+        dtype = model.model.computation_dtype
         work_model = model.clone()
 
         # Apply scale factor
