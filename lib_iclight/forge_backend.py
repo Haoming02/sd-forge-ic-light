@@ -43,6 +43,7 @@ def apply_ic_light(
         model=work_model,
         ic_model_state_dict=ic_model_state_dict,
         c_concat={"samples": vae.encode(pixel_concat)},
+        mode=args.model_type.name,
     )
 
     p.sd_model.forge_objects.unet = patched_unet

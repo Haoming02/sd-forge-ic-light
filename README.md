@@ -3,7 +3,7 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 ### Compatibility Matrix
 
-> **Last Checked:** 2024 Sep.03
+> **Last Checked:** 2024 Nov.01
 
 <table>
     <tr align="center">

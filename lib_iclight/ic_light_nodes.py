@@ -21,6 +21,7 @@ class ICLight:
         model: ModelPatcher,
         ic_model_state_dict: dict,
         c_concat: dict,
+        mode: str,
     ) -> ModelPatcher:
 
         device = memory_management.get_torch_device()
@@ -63,7 +64,7 @@ class ICLight:
         work_model.set_model_unet_function_wrapper(wrapper_func)
 
         work_model.add_patches(
-            filename="ic-light",
+            filename=f"ic-light-{mode}",
             patches={
                 ("diffusion_model." + key): (value.to(dtype=dtype, device=device),)
                 for key, value in ic_model_state_dict.items()

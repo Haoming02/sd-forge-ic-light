@@ -12,7 +12,7 @@ from typing import Callable
 import torch
 
 
-def calculate_weight_adjust_channel(func: Callable):
+def adjust_channel(func: Callable):
     """Patches weight application to accept multi-channel inputs"""
 
     @torch.inference_mode()
@@ -71,8 +71,6 @@ def calculate_weight_adjust_channel(func: Callable):
     return calculate_weight
 
 
-ModelPatcher.calculate_weight = calculate_weight_adjust_channel(
-    ModelPatcher.calculate_weight
-)
-
-print("\ncalculate_weight Patched!\n")
+def patch():
+    ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
+    print("\ncalculate_weight Patched!\n")

@@ -21,6 +21,8 @@ else:
 T2I_WIDTH: None
 T2I_HEIGHT: None
 
+PATCHED = False
+
 
 class BackendType(Enum):
     A1111 = "A1111"
@@ -52,7 +54,12 @@ class ICLightScript(scripts.Script):
                 self.backend_type = BackendType.Classic
             else:
                 self.backend_type = BackendType.reForge
-                import lib_iclight.patch_weight
+                from lib_iclight.patch_weight import patch
+
+                global PATCHED
+                if not PATCHED:
+                    patch()
+                    PATCHED = True
 
             self.apply_ic_light = apply_ic_light
             return
