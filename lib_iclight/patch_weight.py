@@ -7,6 +7,7 @@ Modified by. Haoming02 to work with reForge
 
 from ldm_patched.modules.model_management import cast_to_device
 from ldm_patched.modules.model_patcher import ModelPatcher
+from ldm_patched.modules import lora
 from functools import wraps
 from typing import Callable
 import torch
@@ -17,10 +18,14 @@ def adjust_channel(func: Callable):
 
     @torch.inference_mode()
     @wraps(func)
-    def calculate_weight(
-        self: ModelPatcher, patches, weight: torch.Tensor, key: str
-    ) -> torch.Tensor:
-        weight = func(self, patches, weight, key)
+    def calculate_weight(*args) -> torch.Tensor:
+        weight = func(*args)
+
+        if isinstance(args[0], list):
+            patches, weight, key = args[0:3]
+        else:
+            assert isinstance(args[1], list)
+            patches, weight, key = args[1:4]
 
         for p in patches:
             alpha = p[0]
@@ -72,5 +77,9 @@ def adjust_channel(func: Callable):
 
 
 def patch():
-    ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
-    print("\ncalculate_weight Patched!\n")
+    if hasattr(lora, "calculate_weight"):
+        lora.calculate_weight = adjust_channel(lora.calculate_weight)
+        print("\nlora.calculate_weight Patched!\n")
+    else:
+        ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
+        print("\nModelPatcher.calculate_weight Patched!\n")
