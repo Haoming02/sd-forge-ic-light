@@ -3,16 +3,16 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 ### Compatibility Matrix
 
-> **Last Checked:** 2024 Nov.15
+> **Last Checked:** 2024 Dec.11
 
 <table>
     <tr align="center">
         <th>Automatic1111<br><a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/v1.10.1">v1.10.1</a></th>
         <th><a href="https://github.com/lllyasviel/stable-diffusion-webui-forge">Forge</a><br>(Gradio 4)</th>
         <th>Forge <a href="https://github.com/Haoming02/sd-webui-forge-classic">Classic</a><br>(Gradio 3)</th>
-        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/main">main</a></th>
-        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev">dev</a><br>(845af88)</th>
-        <th>reForge <a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev2">dev2</a><br>(cf602f7)</th>
+        <th>reForge<br><a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/main">main</a></th>
+        <th>reForge<br><a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev">dev</a></th>
+        <th>reForge<br><a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/dev2">dev2</a></th>
     </tr>
     <tr align="center">
         <td><b>Working</b></td>
@@ -40,6 +40,7 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 ## How to Use
 
+> [!Important]
 > Only works with **SD 1.5** checkpoints
 
 #### Index
