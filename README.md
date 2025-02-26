@@ -3,7 +3,7 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 ### Compatibility Matrix
 
-> **Last Checked:** 2024 Dec.11
+> **Last Checked:** 2025 Feb.26
 
 <table>
     <tr align="center">
@@ -135,7 +135,7 @@ The suit retains its original color
 <br>
 
 ### Options
-> These settings are avaliable for all 3 modes
+> These settings are available for all 3 modes
 
 #### Background Removal
 
@@ -162,7 +162,7 @@ By default, this only uses the `DoG` of the subject without background. You can 
 
 > The settings are in the **IC Light** section under the <ins>Stable Diffusion</ins> category in the **Settings** tab
 
-- **Sync Resolution Button:** Adds a button in the `txt2img` tab that changes the `Width` and `Height` parameters to the cloest ratio of the uploaded `Foreground` image
+- **Sync Resolution Button:** Adds a button in the `txt2img` tab that changes the `Width` and `Height` parameters to the closest ratio of the uploaded `Foreground` image.
 - **All Rembg Models:** By default, the Extension only shows `u2net_human_seg` and `isnet-anime` options. If those do not suit your needs *(**eg.** your subject is not a "person")*, you may enable this to list all available models instead.
 
 ## Roadmap
@@ -172,10 +172,6 @@ By default, this only uses the `DoG` of the subject without background. You can 
 - [ ] Improve `Restore Details`
 
 ## Known Issue
-- [ ] If you click `Reuse Seed` when previewing the appended images instead of the first result image, it will result in an error.
-    > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webuis have an unified way to properly append images...
-
-<hr>
-
-> [!NOTE]
-> This fork has been heavily rewritten. I will still try to merge any backend changes upstream; however, the frontend will retain my opinionated breaking changes. Therefore, merging this fork is highly discouraged without thorough testing.
+- [ ] If you click `Reuse Seed` when previewing the appended images instead of the result image, it will result in an error
+    > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webui have an unified way to properly append images...
+- [ ] Seems to be incompatible with [Block Cache](https://github.com/Haoming02/sd-forge-blockcache)

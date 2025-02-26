@@ -50,9 +50,7 @@ class ICLightScript(scripts.Script):
             from lib_iclight.classic_backend import apply_ic_light
             from modules_forge import forge_version
 
-            if "v1.8.0" in forge_version.version:
-                self.backend_type = BackendType.Classic
-            else:
+            if "v1.10.1" in forge_version.version:
                 self.backend_type = BackendType.reForge
                 from lib_iclight.patch_weight import patch
 
@@ -60,6 +58,8 @@ class ICLightScript(scripts.Script):
                 if not PATCHED:
                     patch()
                     PATCHED = True
+            else:
+                self.backend_type = BackendType.Classic
 
             self.apply_ic_light = apply_ic_light
             return
