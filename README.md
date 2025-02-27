@@ -174,4 +174,3 @@ By default, this only uses the `DoG` of the subject without background. You can 
 ## Known Issue
 - [ ] If you click `Reuse Seed` when previewing the appended images instead of the result image, it will result in an error
     > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webui have an unified way to properly append images...
-- [ ] Seems to be incompatible with [Block Cache](https://github.com/Haoming02/sd-forge-blockcache)
