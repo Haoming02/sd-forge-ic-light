@@ -1,9 +1,10 @@
-from ldm_patched.modules.model_patcher import ModelPatcher
-from ldm_patched.modules.model_base import BaseModel
-from ldm_patched.modules import model_management
+from typing import Callable, TypedDict
 
-from typing import TypedDict, Callable
 import torch
+
+from ldm_patched.modules import model_management
+from ldm_patched.modules.model_base import BaseModel
+from ldm_patched.modules.model_patcher import ModelPatcher
 
 
 class UnetParams(TypedDict):
@@ -22,7 +23,6 @@ class ICLight:
         ic_model_state_dict: dict,
         c_concat: dict,
     ) -> ModelPatcher:
-
         device = model_management.get_torch_device()
         dtype = model_management.unet_dtype()
         work_model = model.clone()

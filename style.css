@@ -1,3 +1,7 @@
 .ic-light-desc {
     padding-left: 1em;
 }
+
+.ic-light-btns button {
+    border-radius: 0.5em !important;
+}

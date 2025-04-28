@@ -1,88 +1,27 @@
-from modules.script_callbacks import on_before_ui
-from modules.ui_components import InputAccordion
-from modules.shared import opts
-from modules import scripts
-
-from lib_iclight.model_loader import ModelType, detect_models
-from lib_iclight.bg_source import BGSourceFC, BGSourceFBC
-from lib_iclight.ic_modes import t2i_fc, t2i_fbc, i2i_fc
-from lib_iclight.detail_utils import restore_detail
-from lib_iclight.args import ICLightArgs
-
-from enum import Enum
 import gradio as gr
 import numpy as np
+from lib_iclight import VERSION, i2i_fc, raw, removal, t2i_fbc, t2i_fc
+from lib_iclight.backend import detect_backend
+from lib_iclight.backgrounds import BackgroundFC
+from lib_iclight.detail_utils import restore_detail
+from lib_iclight.logging import logger
+from lib_iclight.model_loader import ICModels
+from lib_iclight.parameters import ICLightArgs
+from lib_iclight.rembg_utils import get_models
+from lib_iclight.settings import ic_settings
 
-if getattr(opts, "ic_all_rembg", False):
-    from lib_iclight.rembg_utils import ALL_MODELS as AVAILABLE_MODELS
-else:
-    from lib_iclight.rembg_utils import BASIC_MODELS as AVAILABLE_MODELS
+from modules import scripts
+from modules.script_callbacks import on_ui_settings
+from modules.shared import opts
+from modules.ui_components import InputAccordion
 
-T2I_WIDTH: None
-T2I_HEIGHT: None
-
-PATCHED = False
-
-
-class BackendType(Enum):
-    A1111 = "A1111"
-    Forge = "Forge"
-    Classic = "Classic"
-    reForge = "reForge"
+backend_type, apply_ic_light = detect_backend()
 
 
 class ICLightScript(scripts.Script):
-
     def __init__(self):
-        self.args: ICLightArgs = None
-
-        try:
-            from lib_iclight.forge_backend import apply_ic_light
-
-            self.backend_type = BackendType.Forge
-            self.apply_ic_light = apply_ic_light
-            return
-
-        except ImportError:
-            pass
-
-        try:
-            from lib_iclight.classic_backend import apply_ic_light
-            from modules_forge import forge_version
-
-            if "v1.10.1" in forge_version.version:
-                self.backend_type = BackendType.reForge
-                from lib_iclight.patch_weight import patch
-
-                global PATCHED
-                if not PATCHED:
-                    patch()
-                    PATCHED = True
-            else:
-                self.backend_type = BackendType.Classic
-
-            self.apply_ic_light = apply_ic_light
-            return
-
-        except ImportError:
-            pass
-
-        from lib_iclight.a1111_backend import apply_ic_light
-
-        self.backend_type = BackendType.A1111
-        self.apply_ic_light = apply_ic_light
-
-        from modules.launch_utils import git_tag
-
-        version = git_tag()
-        if version == "<none>":
-            return
-
-        major, minor, rev = version.split(".", 2)
-        if int(minor) < 10:
-            raise NotImplementedError(
-                "\n[IC-Light] Only Automatic1111 v1.10.0 or later is supported!\n"
-            )
+        ICModels.detect_models()
+        self.args: ICLightArgs
 
     def title(self):
         return "IC Light"
@@ -90,222 +29,130 @@ class ICLightScript(scripts.Script):
     def show(self, is_img2img):
         return scripts.AlwaysVisible
 
-    def after_component(self, component, **kwargs):
-        if not getattr(opts, "ic_sync_dim", True):
-            return
-
-        if not (elem_id := kwargs.get("elem_id", None)):
-            return
-
-        if elem_id == "txt2img_width":
-            global T2I_WIDTH
-            T2I_WIDTH = component
-
-        if elem_id == "txt2img_height":
-            global T2I_HEIGHT
-            T2I_HEIGHT = component
-
-    def ui(self, is_img2img: bool) -> list[gr.components.Component]:
-
-        bg_source_fc_choices = (
-            [e.value for e in BGSourceFC if e != BGSourceFC.NONE]
-            if is_img2img
-            else [BGSourceFC.NONE.value]
-        )
-
-        with InputAccordion(value=False, label=self.title()) as enabled:
+    def ui(self, is_img2img) -> list[gr.components.Component]:
+        with InputAccordion(False, label=f"{self.title()} {VERSION}") as enable:
             with gr.Row():
                 model_type = gr.Dropdown(
                     label="Mode",
-                    choices=(
-                        [ModelType.FC.name, ModelType.FBC.name]
-                        if (not is_img2img)
-                        else [ModelType.FC.name]
-                    ),
-                    value=ModelType.FC.name,
+                    choices=[ICModels.fc, ICModels.fbc],
+                    value=ICModels.fc,
                     interactive=(not is_img2img),
                 )
-
                 desc = gr.Markdown(
-                    value=i2i_fc if is_img2img else t2i_fc,
+                    value=(i2i_fc if is_img2img else t2i_fc),
                     elem_classes=["ic-light-desc"],
                 )
 
-            with gr.Row():
-                input_fg = gr.Image(
-                    source="upload",
-                    type="numpy",
-                    label=("Lighting Conditioning" if is_img2img else "Foreground"),
-                    height=480,
-                    interactive=True,
-                    visible=True,
-                    image_mode="RGBA",
-                )
-                uploaded_bg = gr.Image(
-                    source="upload",
-                    type="numpy",
-                    label="Background",
-                    height=480,
-                    interactive=True,
-                    visible=False,
-                )
-
-            if (not is_img2img) and getattr(opts, "ic_sync_dim", True):
+            with gr.Column(variant="panel"):
+                with gr.Row():
+                    input_fg = gr.Image(
+                        label=("Lighting Conditioning" if is_img2img else "Foreground"),
+                        source="upload",
+                        type="numpy",
+                        height=480,
+                        visible=True,
+                        image_mode="RGBA",
+                    )
+                    uploaded_bg = gr.Image(
+                        label="Background",
+                        source="upload",
+                        type="numpy",
+                        height=480,
+                        visible=False,
+                        image_mode="RGB",
+                    )
 
                 def parse_resolution(img: np.ndarray | None) -> list[int, int]:
                     if img is None:
-                        return [gr.update(), gr.update()]
+                        return [gr.skip(), gr.skip()]
 
-                    height, width, channel = img.shape
-                    while (width > 2048) or (height > 2048):
-                        width /= 2
-                        height /= 2
+                    h, w, _ = img.shape
+                    while (w > 2048) or (h > 2048):
+                        w /= 2
+                        h /= 2
 
-                    width = int(round(width / 64) * 64)
-                    height = int(round(height / 64) * 64)
+                    return [round(w / 64) * 64, round(h / 64) * 64]
 
-                    return [width, height]
+                if not is_img2img:
+                    _sync: bool = getattr(opts, "ic_sync_dim", True)
+                    with gr.Row(variant="compact", elem_classes=["ic-light-btns"]):
+                        sync = gr.Button("Sync Resolution", visible=_sync)
+                        sync.click(
+                            fn=parse_resolution,
+                            inputs=[input_fg],
+                            outputs=[self.txt2img_width, self.txt2img_height],
+                            show_progress="hidden",
+                        )
 
-                sync = gr.Button("Sync Resolution to Width & Height")
-                sync.click(
-                    fn=parse_resolution,
-                    inputs=[input_fg],
-                    outputs=[T2I_WIDTH, T2I_HEIGHT],
-                    show_progress="hidden",
-                )
+                        flip_bg = gr.Button("Flip Background", visible=False)
 
-            bg_source_fc = gr.Radio(
+            _sources = [bg.value for bg in BackgroundFC]
+            background_source = gr.Radio(
                 label="Background Source",
-                choices=bg_source_fc_choices,
-                value=bg_source_fc_choices[-1],
-                type="value",
+                choices=_sources,
+                value=_sources[-1],
                 visible=is_img2img,
-                interactive=True,
-            )
-
-            bg_source_fbc = gr.Radio(
-                label="Background Source",
-                choices=[BGSourceFBC.UPLOAD.value, BGSourceFBC.UPLOAD_FLIP.value],
-                value=BGSourceFBC.UPLOAD.value,
                 type="value",
-                visible=False,
-                interactive=True,
             )
 
-            with InputAccordion(value=True, label="Background Removal") as remove_bg:
-                gr.Markdown("<i>Disable if the subject already has no background</i>")
+            with InputAccordion(True, label="Background Removal") as remove_bg:
+                gr.Markdown(removal)
 
+                _rembg_models = get_models()
                 rembg_model = gr.Dropdown(
                     label="Background Removal Model",
-                    choices=AVAILABLE_MODELS,
-                    value=AVAILABLE_MODELS[0],
+                    choices=_rembg_models,
+                    value=_rembg_models[0],
                 )
-
-                foreground_threshold = gr.Slider(
-                    label="Foreground Threshold",
-                    minimum=0,
-                    maximum=255,
-                    step=1,
-                    value=225,
-                )
-
-                background_threshold = gr.Slider(
-                    label="Background Threshold",
-                    minimum=0,
-                    maximum=255,
-                    step=1,
-                    value=16,
-                )
-
+                with gr.Row():
+                    foreground_threshold = gr.Slider(
+                        label="Foreground Threshold",
+                        value=225,
+                        minimum=0,
+                        maximum=255,
+                        step=1,
+                    )
+                    background_threshold = gr.Slider(
+                        label="Background Threshold",
+                        value=16,
+                        minimum=0,
+                        maximum=255,
+                        step=1,
+                    )
                 erode_size = gr.Slider(
                     label="Erode Size",
+                    value=16,
                     minimum=0,
                     maximum=128,
                     step=1,
-                    value=16,
                 )
 
-            with InputAccordion(
-                value=False, label="Restore Details"
-            ) as detail_transfer:
-
-                detail_transfer_use_raw_input = gr.Checkbox(
-                    label="Use the [Original Input] instead of the [Subject with Background Removed]"
-                )
-
+            with InputAccordion(False, label="Restore Details") as detail_transfer:
+                detail_transfer_raw = gr.Checkbox(False, label=raw)
                 detail_transfer_blur_radius = gr.Slider(
                     label="Blur Radius",
-                    info="for Difference of Gaussian",
+                    info="for Difference of Gaussian; higher = stronger",
+                    value=3,
                     minimum=1,
                     maximum=9,
                     step=2,
-                    value=3,
                 )
 
-            reinforce_fg = gr.Checkbox(
-                label="Reinforce Foreground",
-                info="Paste the Subject onto the Lighting Conditioning",
-                value=False,
-                interactive=True,
-                visible=is_img2img,
-            )
+            with gr.Row(variant="compact", visible=is_img2img):
+                reinforce_fg = gr.Checkbox(
+                    value=False,
+                    label="Reinforce Foreground",
+                    info="Paste the Subject onto the Lighting Conditioning",
+                )
 
         if is_img2img:
-
-            def update_img2img_input(bg_source_fc: str):
-                bg_source_fc = BGSourceFC(bg_source_fc)
-                if bg_source_fc == BGSourceFC.CUSTOM:
-                    return gr.skip()
-
-                return gr.update(value=bg_source_fc.get_bg(512, 512))
-
-            bg_source_fc.input(
-                fn=update_img2img_input,
-                inputs=[bg_source_fc],
-                outputs=[input_fg],
-            )
-
-            def set_img2img_mode():
-                return gr.update(value=BGSourceFC.CUSTOM)
-
-            input_fg.upload(
-                fn=set_img2img_mode,
-                inputs=None,
-                outputs=[bg_source_fc],
-                show_progress="hidden",
-            )
-
+            self._hook_i2i(input_fg, background_source)
         else:
+            self._hook_t2i(model_type, flip_bg, uploaded_bg, desc)
 
-            def on_model_change(model_type: str):
-                match ModelType.get(model_type):
-                    case ModelType.FC:
-                        return (
-                            gr.update(visible=False),
-                            gr.update(visible=False),
-                            gr.update(value=t2i_fc),
-                        )
-                    case ModelType.FBC:
-                        return (
-                            gr.update(visible=True),
-                            gr.update(visible=True),
-                            gr.update(value=t2i_fbc),
-                        )
-                    case _:
-                        raise SystemError
-
-            model_type.change(
-                fn=on_model_change,
-                inputs=[model_type],
-                outputs=[bg_source_fbc, uploaded_bg, desc],
-                show_progress=False,
-            )
-
-        components: list = [
-            enabled,
+        components: list[gr.components.Component] = [
+            enable,
             model_type,
-            bg_source_fc,
-            bg_source_fbc,
             input_fg,
             uploaded_bg,
             remove_bg,
@@ -314,7 +161,7 @@ class ICLightScript(scripts.Script):
             background_threshold,
             erode_size,
             detail_transfer,
-            detail_transfer_use_raw_input,
+            detail_transfer_raw,
             detail_transfer_blur_radius,
             reinforce_fg,
         ]
@@ -324,51 +171,111 @@ class ICLightScript(scripts.Script):
 
         return components
 
-    def before_process(self, p, *args):
+    def before_process(self, p, enable: bool, *args, **kwargs):
         self.detailed_images: list = []
+        self.args = None
 
-        if not bool(args[0]):
-            self.args = None
-        else:
-            self.args = ICLightArgs(p, args)
-            p.extra_generation_params["IC-Light"] = True
-
-    def process_before_every_sampling(self, p, *args, **kwargs):
-        if not (self.args and getattr(self.args, "enabled", False)):
+        if not enable:
+            return
+        if not p.sd_model.is_sd1:
+            logger.error("IC-Light only supports SD1 checkpoint...")
+            return
+        if args[1] is None:
+            logger.error("An input image is required...")
             return
 
-        self.apply_ic_light(p, self.args)
+        self.args = ICLightArgs(p, *args)
+
+    def process_before_every_sampling(self, p, *args, **kwargs):
+        if self.args is not None:
+            apply_ic_light(p, self.args)
 
     def postprocess_image(self, p, pp, *args, **kwargs):
-        if not (
-            self.args
-            and getattr(self.args, "enabled", False)
-            and getattr(self.args, "detail_transfer", False)
-        ):
+        if self.args is None:
+            return
+        if not self.args.detail_transfer.enable:
             return
 
         self.detailed_images.append(
             restore_detail(
                 np.asarray(pp.image).astype(np.uint8),
-                (
-                    self.args.input_fg
-                    if self.args.detail_transfer_use_raw_input
-                    else self.args.input_fg_rgb
-                ),
-                self.args.detail_transfer_blur_radius,
+                self.args.detail_transfer.original,
+                self.args.detail_transfer.radius,
             )
         )
 
     def postprocess(self, p, processed, *args, **kwargs):
-        if not (self.args and getattr(self.args, "enabled", False)):
+        if self.args is None:
             return
 
-        if self.backend_type == BackendType.A1111:
-            if extras := getattr(p, "extra_result_images", None):
-                processed.images += extras
+        processed.images.extend(self.detailed_images)
 
-        if self.detailed_images:
-            processed.images += self.detailed_images
+    def after_component(self, component: gr.Slider, **kwargs):
+        if not getattr(opts, "ic_sync_dim", True):
+            return
+
+        if not (elem_id := kwargs.get("elem_id", None)):
+            return
+
+        if elem_id == "txt2img_width":
+            self.txt2img_width = component
+        if elem_id == "txt2img_height":
+            self.txt2img_height = component
+
+    @staticmethod
+    def _hook_t2i(model_type: gr.Dropdown, flip_bg: gr.Button, uploaded_bg, desc):
+        def on_model_change(model: str):
+            match model:
+                case ICModels.fc:
+                    return (
+                        gr.update(visible=False),
+                        gr.update(visible=False),
+                        gr.update(value=t2i_fc),
+                    )
+                case ICModels.fbc:
+                    return (
+                        gr.update(visible=True),
+                        gr.update(visible=True),
+                        gr.update(value=t2i_fbc),
+                    )
+                case _:
+                    raise ValueError
+
+        model_type.change(
+            fn=on_model_change,
+            inputs=[model_type],
+            outputs=[flip_bg, uploaded_bg, desc],
+            show_progress="hidden",
+        )
+
+        def on_flip_image(image: np.ndarray) -> np.ndarray:
+            if image is None:
+                return gr.skip()
+            return gr.update(value=np.fliplr(image))
+
+        flip_bg.click(fn=on_flip_image, inputs=[uploaded_bg], outputs=[uploaded_bg])
+
+    @staticmethod
+    def _hook_i2i(input_fg: gr.Image, background_source: gr.Dropdown):
+        def update_img2img_input(source: str):
+            source_fc = BackgroundFC(source)
+            if source_fc is BackgroundFC.CUSTOM:
+                return gr.skip()
+            else:
+                return gr.update(value=source_fc.get_bg())
+
+        background_source.input(
+            fn=update_img2img_input,
+            inputs=[background_source],
+            outputs=[input_fg],
+            show_progress="hidden",
+        )
+
+        input_fg.upload(
+            fn=lambda: gr.update(value=BackgroundFC.CUSTOM.value),
+            outputs=[background_source],
+            show_progress="hidden",
+        )
 
 
-on_before_ui(detect_models)
+on_ui_settings(ic_settings)

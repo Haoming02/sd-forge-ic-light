@@ -1,18 +1,19 @@
-from modules.processing import StableDiffusionProcessing
-
-from ldm_patched.modules.model_management import get_torch_device
-from ldm_patched.modules.model_patcher import ModelPatcher
-from ldm_patched.modules.utils import load_torch_file
-from ldm_patched.modules.sd import VAE
-
-from .utils import forge_numpy2pytorch
-from .classic_ic_light_nodes import ICLight
-from .args import ICLightArgs
-
 import numpy as np
 import torch
 
+from ldm_patched.modules.model_management import get_torch_device
+from ldm_patched.modules.model_patcher import ModelPatcher
+from ldm_patched.modules.sd import VAE
+from ldm_patched.modules.utils import load_torch_file
+from modules.processing import StableDiffusionProcessing
 
+from ..classic_ic_light_nodes import ICLight
+from ..model_loader import ICModels
+from ..parameters import ICLightArgs
+from ..utils import forge_numpy2pytorch
+
+
+@torch.inference_mode()
 def apply_ic_light(
     p: StableDiffusionProcessing,
     args: ICLightArgs,
@@ -20,7 +21,11 @@ def apply_ic_light(
     device = get_torch_device()
 
     # Load model
-    ic_model_state_dict = load_torch_file(args.model_type.path, device=device)
+    ic_model_state_dict = load_torch_file(
+        ICModels.get_path(args.model_type),
+        safe_load=True,
+        device=device,
+    )
 
     # Get input
     input_fg_rgb: np.ndarray = args.input_fg_rgb

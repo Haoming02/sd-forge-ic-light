@@ -3,28 +3,35 @@
 # https://github.com/AUTOMATIC1111/stable-diffusion-webui-rembg #
 # ============================================================= #
 
-from modules.paths import models_path
-from PIL import Image
-import numpy as np
-import rembg
 import os
 
-BASIC_MODELS = (
-    "u2net_human_seg",
-    "isnet-anime",
-)
+import numpy as np
+import rembg
+from PIL import Image
 
-ALL_MODELS = (
-    "u2net",
-    "u2netp",
-    "u2net_human_seg",
-    "u2net_cloth_seg",
-    "isnet-anime",
-    "isnet-general-use",
-    "silueta",
-)
+from modules.paths import models_path
+from modules.shared import opts
 
-GREY = (127, 127, 127, 255)
+if "U2NET_HOME" not in os.environ:
+    os.environ["U2NET_HOME"] = os.path.join(models_path, "u2net")
+
+
+def get_models() -> tuple[str]:
+    if getattr(opts, "ic_all_rembg", False):
+        return (
+            "u2net",
+            "u2netp",
+            "u2net_human_seg",
+            "u2net_cloth_seg",
+            "isnet-anime",
+            "isnet-general-use",
+            "silueta",
+        )
+    else:
+        return (
+            "u2net_human_seg",
+            "isnet-anime",
+        )
 
 
 def run_rmbg(
@@ -33,19 +40,14 @@ def run_rmbg(
     foreground_threshold: int,
     background_threshold: int,
     erode_size: int,
-    bg: tuple = GREY,
 ) -> np.ndarray:
-
-    if "U2NET_HOME" not in os.environ:
-        os.environ["U2NET_HOME"] = os.path.join(models_path, "u2net")
-
     image = Image.fromarray(np_image.astype(np.uint8)).convert("RGB")
 
     processed_image = rembg.remove(
         image,
         session=rembg.new_session(
             model_name=model,
-            providers=["CPUExecutionProvider", "CUDAExecutionProvider"],
+            providers=["CPUExecutionProvider"],
         ),
         alpha_matting=True,
         alpha_matting_foreground_threshold=foreground_threshold,
@@ -53,7 +55,7 @@ def run_rmbg(
         alpha_matting_erode_size=erode_size,
         post_process_mask=True,
         only_mask=False,
-        bgcolor=bg,
+        bgcolor=(127, 127, 127, 255),
     )
 
-    return np.array(processed_image.convert("RGB")).astype(np.uint8)
+    return np.asarray(processed_image.convert("RGB")).astype(np.uint8)

@@ -1,5 +1,5 @@
-from modules.processing import StableDiffusionProcessing
 from modules import devices
+from modules.processing import StableDiffusionProcessing
 
 try:
     from lib_modelpatcher.model_patcher import ModulePatch
@@ -8,13 +8,14 @@ except ImportError:
     print("https://github.com/huchenlei/sd-webui-model-patcher\n")
     raise SystemExit
 
-from .utils import numpy2pytorch
-from .args import ICLightArgs
-
 from typing import Callable
-import safetensors.torch
+
 import numpy as np
+import safetensors.torch
 import torch
+
+from ..parameters import ICLightArgs
+from ..utils import numpy2pytorch
 
 
 def vae_encode(sd_model, image: torch.Tensor) -> torch.Tensor:
@@ -27,6 +28,7 @@ def vae_encode(sd_model, image: torch.Tensor) -> torch.Tensor:
     return sd_model.get_first_stage_encoding(sd_model.encode_first_stage(image))
 
 
+@torch.inference_mode()
 def apply_ic_light(
     p: StableDiffusionProcessing,
     args: ICLightArgs,

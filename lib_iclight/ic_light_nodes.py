@@ -1,9 +1,9 @@
-from backend.patcher.base import ModelPatcher
-from backend.modules.k_model import KModel
-from backend import memory_management
+from typing import Callable, TypedDict
 
-from typing import TypedDict, Callable
 import torch
+from backend import memory_management
+from backend.modules.k_model import KModel
+from backend.patcher.base import ModelPatcher
 
 
 class UnetParams(TypedDict):
@@ -23,7 +23,6 @@ class ICLight:
         c_concat: dict,
         mode: str,
     ) -> ModelPatcher:
-
         device = memory_management.get_torch_device()
         dtype = model.model.computation_dtype
         work_model = model.clone()
