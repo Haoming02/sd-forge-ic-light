@@ -35,13 +35,13 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 ## Getting Started
 1. Download the <ins><b>two</b></ins> models from [Releases](https://github.com/Haoming02/sd-forge-ic-light/releases)
 2. Create a new folder, `ic-light`, inside your webui `models` folder
-3. Place the 2 models inside said folder
-4. **(Optional)** You can rename the models, as long as the filenames contain either **`fc`** or **`fbc`** respectively
+3. Place the two models inside the `ic-light` folder
+4. **(Optional)** You can rename the models, as long as the filename contains either **`fc`** or **`fbc`**
 
 ## How to Use
 
 > [!Important]
-> Only works with **SD 1.5** checkpoints
+> IC-Light only supports **SD1** checkpoints
 
 #### Index
 
@@ -68,7 +68,7 @@ example <code>Foreground</code> image
 <p align="center">
 <img src="assets/fc_output.jpg" width=384><br>
 example output<br>
-<b>prompt:</b> <code>outdoors, garden, flowers</code>
+<code>a photo of a gentleman in suit, standing under sunset</code>
 </p>
 
 ### txt2img - FBC
@@ -86,7 +86,7 @@ example <code>Background</code> image
 <p align="center">
 <img src="assets/fbc_output.jpg" width=384><br>
 example output<br>
-<b>prompt:</b> <code>(high quality, best quality)</code>
+<code>a photo of a gentleman in suit, standing at a beach, sunny day</code>
 </p>
 
 ### img2img - FC
@@ -98,39 +98,26 @@ example output<br>
 - Low `CFG` *(`~2.0`)* and high `Denoising strength` *(`~ 1.0`)* is recommended
 
 <p align="center">
-<img src="assets/i2i_output.jpg" width=384><br>
+<img src="assets/i2i_output1.jpg" width=384>
+<img src="assets/i2i_output2.jpg" width=384><br>
 example output<br>
-<b>prompt:</b> <code>beach, sunset</code><br>
-<b>source:</b> <code>Right Light</code>
+<code>Right Light</code> | <code>Left Light</code><br>
+<code>a photo of a gentleman in suit, winter, snowing</code>
 </p>
 
 #### Reinforce Foreground
 
-<details>
-<summary>info</summary>
-
 When enabled, the subject will be additionally pasted onto the light map to preserve the original color. This may improve the details at the cost of weaker lighting influence.
 
-<p align="center">
-<b>prompt:</b> <code>fiery, bright, day, explosion</code><br>
-<b>source:</b> <code>Bottom Light</code>
-</p>
-
-<br>
+> As shown below, the suit gets brightened to a khaki color by the prompt; using `Reinforce Foreground` allows the suit to retain more of its original color
 
 <p align="center">
-<img src="assets/reinforce_off.jpg" width=256><br>
-reinforce <b><ins>off</ins></b><br>
-The suit gets brightened to a khaki color
-</p>
-
-<p align="center">
+<img src="assets/reinforce_off.jpg" width=256>
 <img src="assets/reinforce_on.jpg" width=256><br>
-reinforce <b><ins>on</ins></b><br>
-The suit retains its original color
+example output<br>
+<code>Off | On</code><br>
+<code>fire, explosion</code>
 </p>
-
-</details>
 
 <br>
 
@@ -171,6 +158,21 @@ By default, this only uses the `DoG` of the subject without background. You can 
 - [ ] Improve `Reinforce Foreground`
 - [ ] Improve `Restore Details`
 
-## Known Issue
-- [ ] If you click `Reuse Seed` when previewing the appended images instead of the result image, it will result in an error
-    > This is mostly upstream, as even ControlNet raises this error for the detected maps. I probably won't address it until the Webui have an unified way to properly append images...
+<hr>
+
+<pre align="center">
+Copyright 2024 huchenlei
+Copyright 2025 Haoming02
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+</pre>
