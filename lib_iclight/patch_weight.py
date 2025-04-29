@@ -5,12 +5,14 @@ https://github.com/huchenlei/ComfyUI-layerdiffuse/blob/v0.1.0/layered_diffusion.
 Modified by. Haoming02 to work with reForge
 """
 
-from ldm_patched.modules.model_management import cast_to_device
-from ldm_patched.modules.model_patcher import ModelPatcher
-from ldm_patched.modules import lora
 from functools import wraps
 from typing import Callable
+
 import torch
+
+from ldm_patched.modules import lora
+from ldm_patched.modules.model_management import cast_to_device
+from ldm_patched.modules.model_patcher import ModelPatcher
 
 
 def adjust_channel(func: Callable):
@@ -76,10 +78,9 @@ def adjust_channel(func: Callable):
     return calculate_weight
 
 
-def patch():
-    if hasattr(lora, "calculate_weight"):
-        lora.calculate_weight = adjust_channel(lora.calculate_weight)
-        print("\nlora.calculate_weight Patched!\n")
-    else:
-        ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
-        print("\nModelPatcher.calculate_weight Patched!\n")
+if hasattr(lora, "calculate_weight"):
+    lora.calculate_weight = adjust_channel(lora.calculate_weight)
+    print("\nlora.calculate_weight Patched!\n")
+else:
+    ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
+    print("\nModelPatcher.calculate_weight Patched!\n")

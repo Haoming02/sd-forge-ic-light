@@ -1,65 +1,55 @@
-from modules.paths import models_path
-from enum import Enum
-import os
-
-FC_NAME: str = None
-FBC_NAME: str = None
-FC_PATH: str = None
-FBC_PATH: str = None
+from .logging import logger
 
 
-def detect_models():
-    global FC_NAME, FBC_NAME, FC_PATH, FBC_PATH
-    folder = os.path.join(models_path, "ic-light")
+class ICModels:
+    _init: bool = False
 
-    if not os.path.isdir(folder):
-        print('\n[Error] "ic-light" folder is not detected in the models folder!')
-        print("Create the folder and download the models from Releases!\n")
-        return
+    fc: str = ""
+    fbc: str = ""
 
-    for obj in os.listdir(folder):
-        if "fc" in obj.lower():
-            FC_NAME = os.path.splitext(obj)[0]
-            FC_PATH = os.path.join(folder, obj)
-        elif "fbc" in obj.lower():
-            FBC_NAME = os.path.splitext(obj)[0]
-            FBC_PATH = os.path.join(folder, obj)
-
-    if not FC_PATH:
-        print('\n[Warning] "FC" model not detected!\nDownload it from Releases!\n')
-    if not FBC_PATH:
-        print('\n[Warning] "FBC" model not detected!\nDownload it from Releases!\n')
-
-
-class ModelType(Enum):
-    FC = 1
-    FBC = 2
+    fc_path: str = None
+    fbc_path: str = None
 
     @classmethod
-    def get(cls, value: str):
-        if value == FC_NAME:
-            return ModelType.FC
-        elif value == FBC_NAME:
-            return ModelType.FBC
+    def detect_models(cls):
+        if cls._init:
+            return
         else:
-            raise SystemError
+            cls._init = True
 
-    @property
-    def name(self) -> str:
-        match (self):
-            case ModelType.FC:
-                return FC_NAME
-            case ModelType.FBC:
-                return FBC_NAME
-            case _:
-                raise SystemError
+        import os
 
-    @property
-    def path(self) -> str:
-        match (self):
-            case ModelType.FC:
-                return FC_PATH
-            case ModelType.FBC:
-                return FBC_PATH
+        from modules.paths import models_path
+
+        folder = os.path.join(models_path, "ic-light")
+        os.makedirs(folder, exist_ok=True)
+
+        fc, fbc = None, None
+
+        for obj in os.listdir(folder):
+            if not obj.endswith(".safetensors"):
+                continue
+            if "fc" in obj.lower():
+                fc = os.path.join(folder, obj)
+            if "fbc" in obj.lower():
+                fbc = os.path.join(folder, obj)
+
+        if fc is None or fbc is None:
+            logger.error("Failed to locate IC-Light models! Download from Releases!")
+            return
+
+        cls.fc: str = os.path.basename(fc).rsplit(".", 1)[0]
+        cls.fc_path: str = fc
+
+        cls.fbc: str = os.path.basename(fbc).rsplit(".", 1)[0]
+        cls.fbc_path: str = fbc
+
+    @classmethod
+    def get_path(cls, model: str) -> str:
+        match model:
+            case cls.fc:
+                return cls.fc_path
+            case cls.fbc:
+                return cls.fbc_path
             case _:
-                raise SystemError
+                raise ValueError
