@@ -1,5 +1,5 @@
+import importlib
 from enum import Enum
-from typing import Callable
 
 
 class BackendType(Enum):
@@ -9,32 +9,24 @@ class BackendType(Enum):
     Classic = 2
 
 
-def detect_backend() -> tuple["BackendType", Callable]:
+def _import(module: str) -> bool:
     try:
-        from .backends.forge import apply_ic_light
-
-        return (BackendType.Forge, apply_ic_light)
-
+        importlib.import_module(module)
+        return True
     except ImportError:
-        pass
+        return False
 
-    try:
-        from modules_forge import forge_version
 
-        from .backends.classic import apply_ic_light
+def detect_backend() -> BackendType:
+    if _import("backend.shared"):
+        return BackendType.Forge
 
-        if "1.10.1" not in forge_version.version:
-            return (BackendType.Classic, apply_ic_light)
+    if _import("modules_forge.forge_version"):
+        from modules_forge.forge_version import version
 
-        from lib_iclight.patch_weight import patch_channels
+        if "1.10.1" in version:
+            return BackendType.reForge
+        else:
+            return BackendType.Classic
 
-        patch_channels()
-
-        return (BackendType.reForge, apply_ic_light)
-
-    except ImportError:
-        pass
-
-    from .backends.a1111 import apply_ic_light
-
-    return (BackendType.A1111, apply_ic_light)
+    return BackendType.A1111

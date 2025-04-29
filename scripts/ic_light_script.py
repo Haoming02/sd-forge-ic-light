@@ -1,7 +1,7 @@
 import gradio as gr
 import numpy as np
 from lib_iclight import VERSION, i2i_fc, raw, removal, t2i_fbc, t2i_fc
-from lib_iclight.backend import detect_backend
+from lib_iclight.backend import BackendType, detect_backend
 from lib_iclight.backgrounds import BackgroundFC
 from lib_iclight.detail_utils import restore_detail
 from lib_iclight.logging import logger
@@ -15,13 +15,22 @@ from modules.script_callbacks import on_ui_settings
 from modules.shared import opts
 from modules.ui_components import InputAccordion
 
-backend_type, apply_ic_light = detect_backend()
+backend_type = detect_backend()
+
+if backend_type is BackendType.A1111:
+    from lib_iclight.backends.a1111 import apply_ic_light
+else:
+    from lib_iclight.backends.forge import apply_ic_light
+
+    if backend_type == BackendType.reForge:
+        from lib_iclight import patch_weight  # noqa
 
 
 class ICLightScript(scripts.Script):
     def __init__(self):
         ICModels.detect_models()
         self.args: ICLightArgs
+        self.extra_images: list[np.ndarray]
 
     def title(self):
         return "IC Light"
@@ -172,12 +181,12 @@ class ICLightScript(scripts.Script):
         return components
 
     def before_process(self, p, enable: bool, *args, **kwargs):
-        self.detailed_images: list = []
+        self.extra_images: list[np.ndarray] = []
         self.args = None
 
         if not enable:
             return
-        if not p.sd_model.is_sd1:
+        if not getattr(p.sd_model, "is_sd1", True):
             logger.error("IC-Light only supports SD1 checkpoint...")
             return
         if args[1] is None:
@@ -185,6 +194,7 @@ class ICLightScript(scripts.Script):
             return
 
         self.args = ICLightArgs(p, *args)
+        self.extra_images.append(self.args.input_fg_rgb)
 
     def process_before_every_sampling(self, p, *args, **kwargs):
         if self.args is not None:
@@ -196,9 +206,9 @@ class ICLightScript(scripts.Script):
         if not self.args.detail_transfer.enable:
             return
 
-        self.detailed_images.append(
+        self.extra_images.append(
             restore_detail(
-                np.asarray(pp.image).astype(np.uint8),
+                np.asarray(pp.image, dtype=np.uint8),
                 self.args.detail_transfer.original,
                 self.args.detail_transfer.radius,
             )
@@ -208,7 +218,7 @@ class ICLightScript(scripts.Script):
         if self.args is None:
             return
 
-        processed.images.extend(self.detailed_images)
+        processed.images.extend(self.extra_images)
 
     def after_component(self, component: gr.Slider, **kwargs):
         if not getattr(opts, "ic_sync_dim", True):

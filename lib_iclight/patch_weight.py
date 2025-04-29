@@ -78,10 +78,9 @@ def adjust_channel(func: Callable):
     return calculate_weight
 
 
-def patch_channels():
-    if hasattr(lora, "calculate_weight"):
-        lora.calculate_weight = adjust_channel(lora.calculate_weight)
-        print("\nlora.calculate_weight Patched!\n")
-    else:
-        ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
-        print("\nModelPatcher.calculate_weight Patched!\n")
+if hasattr(lora, "calculate_weight"):
+    lora.calculate_weight = adjust_channel(lora.calculate_weight)
+    print("\nlora.calculate_weight Patched!\n")
+else:
+    ModelPatcher.calculate_weight = adjust_channel(ModelPatcher.calculate_weight)
+    print("\nModelPatcher.calculate_weight Patched!\n")

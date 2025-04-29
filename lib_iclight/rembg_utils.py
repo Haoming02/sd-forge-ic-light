@@ -58,4 +58,4 @@ def run_rmbg(
         bgcolor=(127, 127, 127, 255),
     )
 
-    return np.asarray(processed_image.convert("RGB")).astype(np.uint8)
+    return np.asarray(processed_image.convert("RGB"), dtype=np.uint8)

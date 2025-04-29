@@ -3,11 +3,11 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 
 ### Compatibility Matrix
 
-> **Last Checked:** 2025 Feb.26
+> **Last Checked:** 2025 Apr.29
 
 <table>
     <tr align="center">
-        <th>Automatic1111<br><a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/v1.10.1">v1.10.1</a></th>
+        <th>Automatic1111<br><a href="https://github.com/AUTOMATIC1111/stable-diffusion-webui/tree/dev">dev</a></th>
         <th><a href="https://github.com/lllyasviel/stable-diffusion-webui-forge">Forge</a><br>(Gradio 4)</th>
         <th>Forge <a href="https://github.com/Haoming02/sd-webui-forge-classic">Classic</a><br>(Gradio 3)</th>
         <th>reForge<br><a href="https://github.com/Panchovix/stable-diffusion-webui-reForge/tree/main">main</a></th>
@@ -27,8 +27,7 @@ This is an Extension for the [Forge Webui](https://github.com/lllyasviel/stable-
 <details>
 <summary>for <b>Automatic1111 Webui</b></summary>
 
-- Only version **v1.10.0** or later is supported
-- You also need to install [sd-webui-model-patcher](https://github.com/huchenlei/sd-webui-model-patcher) first
+- You additionally need to install [sd-webui-model-patcher](https://github.com/huchenlei/sd-webui-model-patcher) first
 
 </details>
 

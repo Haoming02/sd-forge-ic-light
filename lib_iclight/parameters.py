@@ -126,11 +126,7 @@ class ICLightArgs:
             image[..., 3:].astype(np.float32) / 255.0,
         )
 
-    def get_concat_cond(
-        self,
-        processed_fg: np.ndarray,  # subject with background removed
-        p: StableDiffusionProcessing,
-    ) -> np.ndarray:
+    def get_concat_cond(self, p: StableDiffusionProcessing) -> np.ndarray:
         """Returns concat condition in [B, H, W, C] format."""
 
         if getattr(p, "is_hr_pass", False):
@@ -147,7 +143,7 @@ class ICLightArgs:
             image_width = p.width
             image_height = p.height
 
-        fg = resize_and_center_crop(processed_fg, image_width, image_height)
+        fg = resize_and_center_crop(self.input_fg_rgb, image_width, image_height)
 
         match self.model_type:
             case ICModels.fc:

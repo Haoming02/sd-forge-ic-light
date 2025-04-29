@@ -1,9 +1,13 @@
-from typing import Callable, TypedDict
+from typing import Callable, Optional, TypedDict
 
 import torch
-from backend import memory_management
-from backend.modules.k_model import KModel
-from backend.patcher.base import ModelPatcher
+
+from modules.devices import device, dtype
+
+try:
+    from ldm_patched.modules.model_patcher import ModelPatcher
+except ImportError:
+    from backend.patcher.base import ModelPatcher
 
 
 class UnetParams(TypedDict):
@@ -16,28 +20,27 @@ class UnetParams(TypedDict):
 class ICLight:
     """IC-Light Implementation"""
 
+    @staticmethod
     def apply(
-        self,
         model: ModelPatcher,
-        ic_model_state_dict: dict,
+        ic_model_state_dict: dict[str, torch.Tensor],
         c_concat: dict,
-        mode: str,
+        mode: Optional[str] = None,
     ) -> ModelPatcher:
-        device = memory_management.get_torch_device()
-        dtype = model.model.computation_dtype
         work_model = model.clone()
 
-        # Apply scale factor
-        base_model: KModel = work_model.model
-        scale_factor = base_model.config.latent_format.scale_factor
+        model_config = (
+            work_model.model.model_config
+            if hasattr(work_model.model, "model_config")
+            else work_model.model.config
+        )
+        scale_factor: float = model_config.latent_format.scale_factor
 
-        # [B, 4, H, W]
         concat_conds: torch.Tensor = c_concat["samples"] * scale_factor
-        # [1, 4 * B, H, W]
         concat_conds = torch.cat([c[None, ...] for c in concat_conds], dim=1)
 
         def apply_c_concat(params: UnetParams) -> UnetParams:
-            """Apply c_concat on unet call."""
+            """Apply c_concat on Unet call"""
             sample = params["input"]
             params["c"]["c_concat"] = torch.cat(
                 (
@@ -52,7 +55,6 @@ class ICLight:
             """A dummy unet apply wrapper serving as the endpoint of wrapper chain"""
             return unet_apply(x=params["input"], t=params["timestep"], **params["c"])
 
-        # Compose on existing `model_function_wrapper`
         existing_wrapper = work_model.model_options.get(
             "model_function_wrapper", unet_dummy_apply
         )
@@ -62,12 +64,15 @@ class ICLight:
 
         work_model.set_model_unet_function_wrapper(wrapper_func)
 
-        work_model.add_patches(
-            filename=f"ic-light-{mode}",
-            patches={
+        args = {
+            "patches": {
                 ("diffusion_model." + key): (value.to(dtype=dtype, device=device),)
                 for key, value in ic_model_state_dict.items()
-            },
-        )
+            }
+        }
 
+        if mode is not None:
+            args["filename"] = f"ic-light-{mode}"
+
+        work_model.add_patches(**args)
         return work_model

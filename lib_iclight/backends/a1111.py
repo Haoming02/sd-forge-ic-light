@@ -1,20 +1,26 @@
-from modules import devices
-from modules.processing import StableDiffusionProcessing
+from ..logging import logger
 
 try:
     from lib_modelpatcher.model_patcher import ModulePatch
 except ImportError:
-    print("\n[IC-Light] Please install [sd-webui-model-patcher] first!")
-    print("https://github.com/huchenlei/sd-webui-model-patcher\n")
-    raise SystemExit
+    logger.error("Please install [sd-webui-model-patcher] first!")
+    raise
 
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
-import numpy as np
+if TYPE_CHECKING:
+    from modules.processing import StableDiffusionProcessing
+
+    from ..parameters import ICLightArgs
+
+from functools import wraps
+
 import safetensors.torch
 import torch
 
-from ..parameters import ICLightArgs
+from modules.devices import device, dtype
+
+from ..model_loader import ICModels
 from ..utils import numpy2pytorch
 
 
@@ -29,33 +35,19 @@ def vae_encode(sd_model, image: torch.Tensor) -> torch.Tensor:
 
 
 @torch.inference_mode()
-def apply_ic_light(
-    p: StableDiffusionProcessing,
-    args: ICLightArgs,
-):
-    device = devices.get_device_for("ic_light")
-    dtype = devices.dtype_unet
+def apply_ic_light(p: "StableDiffusionProcessing", args: "ICLightArgs"):
+    sd = safetensors.torch.load_file(ICModels.get_path(args.model_type))
 
-    # Load model
-    ic_model_state_dict = safetensors.torch.load_file(args.model_type.path)
-
-    # Get input
-    input_fg_rgb: np.ndarray = args.input_fg_rgb
-
-    # [B, 4, H, W]
     concat_conds = vae_encode(
         p.sd_model,
-        numpy2pytorch(args.get_concat_cond(input_fg_rgb, p)).to(
-            dtype=devices.dtype_vae, device=device
-        ),
-    ).to(dtype=devices.dtype_unet)
+        numpy2pytorch(args.get_concat_cond(p)).to(dtype=dtype, device=device),
+    ).to(dtype=dtype)
 
-    # [1, 4 * B, H, W]
     concat_conds = torch.cat([c[None, ...] for c in concat_conds], dim=1)
 
     def apply_c_concat(unet, old_forward: Callable) -> Callable:
+        @wraps(old_forward)
         def new_forward(x, timesteps=None, context=None, **kwargs):
-            # Expand according to batch number
             c_concat = torch.cat(
                 ([concat_conds.to(x.device)] * (x.shape[0] // concat_conds.shape[0])),
                 dim=0,
@@ -65,24 +57,14 @@ def apply_ic_light(
 
         return new_forward
 
-    # Patch unet forward
     model_patcher = p.get_model_patcher()
     model_patcher.add_module_patch(
-        "diffusion_model", ModulePatch(create_new_forward_func=apply_c_concat)
+        "diffusion_model",
+        ModulePatch(create_new_forward_func=apply_c_concat),
     )
-
-    # Patch weights
     model_patcher.add_patches(
         patches={
             "diffusion_model." + key: (value.to(dtype=dtype, device=device),)
-            for key, value in ic_model_state_dict.items()
+            for key, value in sd.items()
         }
     )
-
-    # Add input image to extra result images
-    if not getattr(p, "is_hr_pass", False):
-        if not getattr(p, "extra_result_images", None):
-            setattr(p, "extra_result_images", [input_fg_rgb])
-        else:
-            assert isinstance(p.extra_result_images, list)
-            p.extra_result_images.append(input_fg_rgb)
