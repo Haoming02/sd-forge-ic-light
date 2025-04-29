@@ -153,7 +153,8 @@ By default, this only uses the `DoG` of the subject without background. You can 
 
 ## Roadmap
 - [X] Select different `rembg` models
-- [ ] API Support
+- [X] API Support
+    - see [wiki](https://github.com/Haoming02/sd-forge-ic-light/wiki/API)
 - [ ] Improve `Reinforce Foreground`
 - [ ] Improve `Restore Details`
 
