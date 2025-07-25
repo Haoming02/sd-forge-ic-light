@@ -22,7 +22,7 @@ if backend_type is BackendType.A1111:
 else:
     from lib_iclight.backends.forge import apply_ic_light
 
-    if backend_type == BackendType.reForge:
+    if backend_type in (BackendType.Classic, BackendType.reForge):
         from lib_iclight import patch_weight  # noqa
 
 
